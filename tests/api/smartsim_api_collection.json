@@ -1,0 +1,729 @@
+{
+	"info": {
+		"_postman_id": "a671239c-512c-4903-88cc-4d3209121a8d",
+		"name": "SmartSIM API Collection",
+		"description": "API collection for testing SmartSIM microservices via the API Gateway.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Step 1 - Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"user@example.com\",\n  \"mobile\": \"01700000000\",\n  \"password\": \"password123\",\n  \"role\": \"customer\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Step 2 - Verify OTP (activate account)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"code\": \"123456\",\n  \"purpose\": \"activation\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/verify-otp",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "verify-otp"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.access_token) {",
+									"    pm.environment.set('accessToken', jsonData.access_token);",
+									"    pm.environment.set('refreshToken', jsonData.refresh_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "profile"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "refresh"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "SIM Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sims/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sims", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All SIMs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sims",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sims"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get SIM by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sims/{{simId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sims", "{{simId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create SIM (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Prepaid Starter SIM\",\n  \"type\": \"physical\",\n  \"iccid_prefix\": \"8944\",\n  \"price\": 9.99,\n  \"description\": \"Entry-level physical SIM card\",\n  \"is_available\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/sims",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sims"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update SIM (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"price\": 12.99,\n  \"is_available\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/sims/{{simId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sims", "{{simId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete SIM (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/sims/{{simId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "sims", "{{simId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Plan Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/plans/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "plans", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All Plans",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/plans",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "plans"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Plan by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/plans/{{planId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "plans", "{{planId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Plan (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Monthly Unlimited\",\n  \"type\": \"combo\",\n  \"price\": 29.99,\n  \"validity_days\": 30,\n  \"data_gb\": -1,\n  \"description\": \"Unlimited data for 30 days\",\n  \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/plans",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "plans"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Plan (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"price\": 24.99,\n  \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/plans/{{planId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "plans", "{{planId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Plan (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/plans/{{planId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "plans", "{{planId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Wallet Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/wallet/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "wallet", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Wallet",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/wallet",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "wallet"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Money (Credit Wallet)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 500.00,\n  \"description\": \"Manual top-up\",\n  \"reference_id\": \"TOPUP-001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/wallet/add-money",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "wallet", "add-money"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Debit Wallet",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 100.00,\n  \"description\": \"Test debit\",\n  \"reference_id\": \"ORDER-001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/wallet/debit",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "wallet", "debit"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transaction History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/wallet/transactions?skip=0&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "wallet", "transactions"],
+							"query": [
+								{ "key": "skip", "value": "0" },
+								{ "key": "limit", "value": "20" }
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Order Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order (SIM)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.id) {",
+									"    pm.environment.set('orderId', jsonData.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"item_type\": \"SIM\",\n      \"item_id\": \"{{simId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order (Plan)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"item_type\": \"PLAN\",\n      \"item_id\": \"{{planId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Orders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders?skip=0&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders"],
+							"query": [
+								{ "key": "skip", "value": "0" },
+								{ "key": "limit", "value": "20" }
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/orders/{{orderId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "orders", "{{orderId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Notification Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send Notification (Manual)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"recipient\": \"customer@example.com\",\n  \"type\": \"EMAIL\",\n  \"title\": \"Manual Notification\",\n  \"body\": \"This is a manual notification sent via Postman.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications/send",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications", "send"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Notification History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/notifications?recipient=customer@example.com&skip=0&limit=50",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "recipient", "value": "customer@example.com" },
+								{ "key": "skip", "value": "0" },
+								{ "key": "limit", "value": "50" }
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "simId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "planId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "orderId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

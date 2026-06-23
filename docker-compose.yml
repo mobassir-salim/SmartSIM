@@ -1,0 +1,322 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: smartsim_postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: smartsim
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - smartsim_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartsim_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - smartsim_network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: smartsim_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - smartsim_network
+
+  backend:
+    build: ./backend
+    container_name: smartsim_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=supersecretkeychangeinproduction1234567890!
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  auth-service:
+    build: ./services/auth-service
+    container_name: smartsim_auth_service
+    ports:
+      - "8001:8001"
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=supersecretkeychangeinproduction1234567890!
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    volumes:
+      - ./services/auth-service:/app
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001
+
+  sim-service:
+    build: ./services/sim-service
+    container_name: smartsim_sim_service
+    ports:
+      - "8002:8002"
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=supersecretkeychangeinproduction1234567890!
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    volumes:
+      - ./services/sim-service:/app
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002
+
+  plan-service:
+    build: ./services/plan-service
+    container_name: smartsim_plan_service
+    ports:
+      - "8003:8003"
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=supersecretkeychangeinproduction1234567890!
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    volumes:
+      - ./services/plan-service:/app
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003
+
+  wallet-service:
+    build: ./services/wallet-service
+    container_name: smartsim_wallet_service
+    ports:
+      - "8004:8004"
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=supersecretkeychangeinproduction1234567890!
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    volumes:
+      - ./services/wallet-service:/app
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8004
+
+  order-service:
+    build: ./services/order-service
+    container_name: smartsim_order_service
+    ports:
+      - "8005:8005"
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=supersecretkeychangeinproduction1234567890!
+      - WALLET_SERVICE_URL=http://wallet-service:8004
+      - SIM_SERVICE_URL=http://sim-service:8002
+      - PLAN_SERVICE_URL=http://plan-service:8003
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    volumes:
+      - ./services/order-service:/app
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8005
+
+  notification-service:
+    build: ./services/notification-service
+    container_name: smartsim_notification_service
+    ports:
+      - "8006:8006"
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=supersecretkeychangeinproduction1234567890!
+      - RABBITMQ_HOST=rabbitmq
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    volumes:
+      - ./services/notification-service:/app
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8006
+
+  frontend:
+    build: ./frontend
+    container_name: smartsim_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - smartsim_network
+
+  gateway:
+    image: nginx:alpine
+    container_name: smartsim_gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+      - auth-service
+      - sim-service
+      - plan-service
+      - wallet-service
+      - order-service
+      - notification-service
+    networks:
+      - smartsim_network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: smartsim_pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@smartsim.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - postgres
+    networks:
+      - smartsim_network
+
+  elasticsearch:
+    image: elasticsearch:8.11.1
+    container_name: smartsim_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - smartsim_network
+
+  logstash:
+    image: logstash:8.11.1
+    container_name: smartsim_logstash
+    volumes:
+      - ./logging/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "5044:5044"
+    depends_on:
+      - elasticsearch
+    networks:
+      - smartsim_network
+
+  kibana:
+    image: kibana:8.11.1
+    container_name: smartsim_kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - smartsim_network
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: smartsim_prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=2h'
+    ports:
+      - "9090:9090"
+    depends_on:
+      - auth-service
+      - sim-service
+      - plan-service
+      - wallet-service
+      - order-service
+      - notification-service
+    networks:
+      - smartsim_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  elasticsearch_data:
+
+networks:
+  smartsim_network:
+    driver: bridge

@@ -1,0 +1,278 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: smartsim_postgres_prod
+    restart: unless-stopped
+    # In production, we do not expose postgres to the public. 
+    # Only bind to localhost if administrative access is needed, or keep internal.
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: smartsim
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - smartsim_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartsim_redis_prod
+    restart: unless-stopped
+    volumes:
+      - redis_prod_data:/data
+    networks:
+      - smartsim_network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: smartsim_rabbitmq_prod
+    restart: unless-stopped
+    # Management portal only accessible locally via SSH tunnel
+    ports:
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_prod_data:/var/lib/rabbitmq
+    networks:
+      - smartsim_network
+
+  auth-service:
+    build:
+      context: ../services/auth-service
+      dockerfile: Dockerfile
+    container_name: smartsim_auth_service_prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=${JWT_SECRET}
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001
+
+  sim-service:
+    build:
+      context: ../services/sim-service
+      dockerfile: Dockerfile
+    container_name: smartsim_sim_service_prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=${JWT_SECRET}
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002
+
+  plan-service:
+    build:
+      context: ../services/plan-service
+      dockerfile: Dockerfile
+    container_name: smartsim_plan_service_prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=${JWT_SECRET}
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003
+
+  wallet-service:
+    build:
+      context: ../services/wallet-service
+      dockerfile: Dockerfile
+    container_name: smartsim_wallet_service_prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=${JWT_SECRET}
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8004
+
+  order-service:
+    build:
+      context: ../services/order-service
+      dockerfile: Dockerfile
+    container_name: smartsim_order_service_prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=${JWT_SECRET}
+      - WALLET_SERVICE_URL=http://wallet-service:8004
+      - SIM_SERVICE_URL=http://sim-service:8002
+      - PLAN_SERVICE_URL=http://plan-service:8003
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8005
+
+  notification-service:
+    build:
+      context: ../services/notification-service
+      dockerfile: Dockerfile
+    container_name: smartsim_notification_service_prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - JWT_SECRET=${JWT_SECRET}
+      - RABBITMQ_HOST=rabbitmq
+      - LOGSTASH_HOST=logstash
+      - LOGSTASH_PORT=5044
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8006
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: smartsim_frontend_prod
+    restart: unless-stopped
+    networks:
+      - smartsim_network
+
+  gateway:
+    image: nginx:alpine
+    container_name: smartsim_gateway_prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - auth-service
+      - sim-service
+      - plan-service
+      - wallet-service
+      - order-service
+      - notification-service
+    networks:
+      - smartsim_network
+
+  elasticsearch:
+    image: elasticsearch:8.11.1
+    container_name: smartsim_elasticsearch_prod
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_prod_data:/usr/share/elasticsearch/data
+    networks:
+      - smartsim_network
+
+  logstash:
+    image: logstash:8.11.1
+    container_name: smartsim_logstash_prod
+    restart: unless-stopped
+    volumes:
+      - ../logging/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    depends_on:
+      - elasticsearch
+    networks:
+      - smartsim_network
+
+  kibana:
+    image: kibana:8.11.1
+    container_name: smartsim_kibana_prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - smartsim_network
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: smartsim_prometheus_prod
+    restart: unless-stopped
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - auth-service
+      - sim-service
+      - plan-service
+      - wallet-service
+      - order-service
+      - notification-service
+    networks:
+      - smartsim_network
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+  rabbitmq_prod_data:
+  elasticsearch_prod_data:
+
+networks:
+  smartsim_network:
+    driver: bridge

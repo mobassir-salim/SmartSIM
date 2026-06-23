@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+
+<html class="scroll-smooth" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SmartSIM | Seamless Connectivity, Anywhere.</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed": "#ffcc00",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#ffb3ab",
+                        "primary": "#1a1a1a",
+                        "on-primary-container": "#1a1a1a",
+                        "on-primary-fixed-variant": "#1a1a1a",
+                        "on-error": "#ffffff",
+                        "inverse-primary": "#f5f0e8",
+                        "tertiary-container": "#d6e3ff",
+                        "primary-fixed-dim": "#e6b800",
+                        "inverse-surface": "#1a1a1a",
+                        "on-secondary": "#1a1a1a",
+                        "on-surface": "#1a1a1a",
+                        "on-tertiary": "#ffffff",
+                        "error": "#cc0000",
+                        "surface-container": "#eee9e0",
+                        "background": "#f5f0e8",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#1a1a1a",
+                        "surface-container-highest": "#e2ddd4",
+                        "surface-container-high": "#e8e3da",
+                        "on-primary-fixed": "#1a1a1a",
+                        "surface-dim": "#d6d1c9",
+                        "tertiary-fixed-dim": "#a8c6ff",
+                        "inverse-on-surface": "#f5f0e8",
+                        "tertiary-fixed": "#d6e3ff",
+                        "surface-bright": "#faf7f2",
+                        "on-tertiary-container": "#1a1a1a",
+                        "surface": "#f5f0e8",
+                        "surface-container-low": "#f2ede5",
+                        "on-background": "#1a1a1a",
+                        "outline": "#1a1a1a",
+                        "on-secondary-container": "#1a1a1a",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#ffcc00",
+                        "tertiary": "#0055ff",
+                        "secondary": "#e63b2e",
+                        "secondary-container": "#ffdad6",
+                        "secondary-fixed": "#ffdad6",
+                        "on-secondary-fixed": "#1a1a1a",
+                        "outline-variant": "#1a1a1a",
+                        "on-surface-variant": "#1a1a1a",
+                        "surface-tint": "#1a1a1a",
+                        "surface-variant": "#e8e3da",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed": "#1a1a1a",
+                        "on-secondary-fixed-variant": "#1a1a1a",
+                        "success-green": "#10B981"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-max": "1280px",
+                        "gutter": "24px",
+                        "stack-lg": "32px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "display": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Space Grotesk"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-headline, .font-display, .font-label { font-family: 'Space Grotesk', sans-serif; }
+        
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        .brutalist-border {
+            border: 2px solid #1a1a1a;
+            box-shadow: 4px 4px 0px 0px #1a1a1a;
+        }
+        
+        .brutalist-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px 0px #1a1a1a;
+        }
+
+        .brutalist-btn-primary {
+            background-color: #ffcc00;
+            color: #1a1a1a;
+            border: 2px solid #1a1a1a;
+            box-shadow: 4px 4px 0px 0px #1a1a1a;
+            transition: all 0.1s ease;
+        }
+        
+        .brutalist-btn-primary:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px 0px #1a1a1a;
+        }
+
+        .brutalist-btn-secondary {
+            background-color: #ffffff;
+            color: #1a1a1a;
+            border: 2px solid #1a1a1a;
+            box-shadow: 4px 4px 0px 0px #1a1a1a;
+            transition: all 0.1s ease;
+        }
+        
+        .brutalist-btn-secondary:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px 0px #1a1a1a;
+        }
+
+        .glass-header {
+            background: #ffffff;
+            border-bottom: 3px solid #1a1a1a;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-primary-container selection:text-on-primary-container">
+<!-- Navigation Bar -->
+<nav class="fixed top-0 left-0 right-0 z-50 glass-header h-20 flex items-center">
+<div class="max-w-container-max mx-auto w-full px-margin-mobile md:px-gutter flex justify-between items-center">
+<div class="flex items-center gap-12">
+<a class="flex items-center" href="#">
+<img alt="SmartSIM Logo" class="h-10 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AP1WRLuN0m2mqDfKpZh7daAjdvTr3GWDoMttrV8cTYeJS1fmk3t9YkDlMWvTdZJWfeCaP2KH4IP5SssCE9URPVIy9zvl16iVoBr1wnQoFuPMwTMIkTnMJbK9VIj4hWZVElbt5CyHEDmDJLi0TOJlCfZ8mQpt5EF1mdmBmSXDj4B2aa5Bt49AmyO4MFIM3rFs1pnSe-X21uoVWZdNS5b21ls5gawyMJyZoU38tdRnd4f07V-m_kQ5MHm9VpeaAg"/>
+</a>
+<div class="hidden lg:flex gap-10">
+<a class="font-label text-sm font-black text-on-surface uppercase tracking-widest hover:text-primary-fixed-dim transition-colors" href="#sims">SIMs</a>
+<a class="font-label text-sm font-black text-on-surface uppercase tracking-widest hover:text-primary-fixed-dim transition-colors" href="#plans">Plans</a>
+<a class="font-label text-sm font-black text-on-surface uppercase tracking-widest hover:text-primary-fixed-dim transition-colors" href="#help">Help</a>
+<a class="font-label text-sm font-black text-on-surface uppercase tracking-widest hover:text-primary-fixed-dim transition-colors" href="#coverage">Coverage</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center w-12 h-12 border-2 border-primary bg-white text-primary hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined font-black">shopping_cart</span>
+</button>
+<button class="hidden md:flex items-center gap-3 px-6 py-2.5 border-2 border-primary bg-primary text-white font-label text-sm font-black uppercase hover:bg-white hover:text-primary transition-colors group">
+<span class="material-symbols-outlined text-[20px] font-black group-hover:text-primary">account_circle</span>
+                Account
+            </button>
+</div>
+</div>
+</nav>
+<main class="pt-20">
+<!-- Hero Section -->
+<section class="relative overflow-hidden bg-white py-20 lg:py-32 border-b-2 border-primary">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-gutter grid lg:grid-cols-2 gap-16 items-center">
+<div class="z-10 text-center lg:text-left">
+<span class="inline-block px-4 py-1 border-2 border-primary bg-primary-fixed text-primary font-label text-xs font-bold mb-6 uppercase tracking-widest">Marketplace Launch</span>
+<h1 class="font-headline text-5xl lg:text-7xl font-black text-on-surface mb-8 tracking-tighter leading-none uppercase">
+                    Seamless <br/>Connectivity, <span class="bg-primary-fixed px-2">Anywhere.</span>
+</h1>
+<p class="font-body text-lg text-on-surface-variant mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                    SmartSIM is your one-stop marketplace for Prepaid, Postpaid, and eSIM solutions. Discover, compare, and manage your global connection with zero fuss.
+                </p>
+<div class="flex flex-col sm:flex-row gap-6 justify-center lg:justify-start">
+<a class="px-8 py-4 brutalist-btn-primary font-headline text-lg font-bold flex items-center justify-center gap-2 uppercase tracking-tight" href="#sims">
+                        Browse SIMs
+                        <span class="material-symbols-outlined font-bold">arrow_forward</span>
+</a>
+<a class="px-8 py-4 brutalist-btn-secondary font-headline text-lg font-bold flex items-center justify-center uppercase tracking-tight" href="#plans">
+                        View Plans
+                    </a>
+</div>
+</div>
+<div class="relative flex justify-center items-center">
+<div class="absolute -z-10 w-full h-full border-2 border-primary translate-x-4 translate-y-4"></div>
+<img class="w-full max-w-md object-contain border-2 border-primary bg-surface-container" data-alt="Modern smartphone eSIM visualization" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgAm4MYSi8w6vr3B0TsKywOZvPeH0VeQHqTbMblDmC3w2rho8UutDxzE0XLTWwLtRKrrBXp_QfPMFmrN9xpugLMugLIK-czVAmcYOpqKMBNzvMggO1-2BDzAIhxAWYsOtLq4ID87Q_FUS6ulnaO2rXbJ9cAmzhTN9MYtnAJzJivychmtzUJQzeh0bn2kNAi0f7uFNytrVqVFoXEvtEmsq6H-Gf50oc9I2vO85QhPnJJloBsGDJxnWg"/>
+</div>
+</div>
+</section>
+<!-- SIM Catalog Section -->
+<section class="py-24 bg-background" id="sims">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-gutter">
+<div class="mb-16 border-l-8 border-primary pl-8">
+<h2 class="font-headline text-4xl font-black text-on-surface mb-4 uppercase tracking-tighter italic">Shop SIMs</h2>
+<p class="font-body text-lg text-on-surface-variant max-w-2xl font-medium">Choose the connection type that fits your lifestyle. From digital-only eSIMs to reliable physical prepaid cards.</p>
+</div>
+<div class="grid md:grid-cols-3 gap-8">
+<!-- eSIM Card -->
+<div class="brutalist-border brutalist-card rounded-none p-8 bg-white transition-all group">
+<div class="w-16 h-16 border-2 border-primary bg-primary-fixed flex items-center justify-center mb-8 text-primary shrink-0">
+<span class="material-symbols-outlined text-[40px] font-bold">cell_tower</span>
+</div>
+<span class="px-3 py-1 border border-primary bg-secondary text-white font-label text-xs font-bold mb-4 inline-block uppercase tracking-widest">Best Seller</span>
+<h3 class="font-headline text-3xl font-black text-on-surface mb-4 uppercase">eSIM</h3>
+<p class="font-body text-sm text-on-surface-variant mb-8 leading-relaxed">Activate instantly on your device without a physical card. Perfect for travelers and digital nomads.</p>
+<div class="flex items-center justify-between mt-auto pt-6 border-t-2 border-primary-container/20">
+<span class="font-headline text-3xl font-black text-primary">$4.99</span>
+<button class="px-6 py-2 brutalist-btn-primary font-label text-sm font-black uppercase">Buy Now</button>
+</div>
+</div>
+<!-- Prepaid SIM Card -->
+<div class="brutalist-border brutalist-card rounded-none p-8 bg-white transition-all group">
+<div class="w-16 h-16 border-2 border-primary bg-surface-container flex items-center justify-center mb-8 text-primary shrink-0">
+<span class="material-symbols-outlined text-[40px] font-bold">sim_card</span>
+</div>
+<div class="mb-4 h-6"></div> <!-- spacer to align with best seller tag -->
+<h3 class="font-headline text-3xl font-black text-on-surface mb-4 uppercase">Prepaid SIM</h3>
+<p class="font-body text-sm text-on-surface-variant mb-8 leading-relaxed">No commitments, no contracts. Top up as you go and maintain full control over your spending.</p>
+<div class="flex items-center justify-between mt-auto pt-6 border-t-2 border-primary-container/20">
+<span class="font-headline text-3xl font-black text-primary">$9.99</span>
+<button class="px-6 py-2 brutalist-btn-primary font-label text-sm font-black uppercase">Buy Now</button>
+</div>
+</div>
+<!-- Postpaid SIM Card -->
+<div class="brutalist-border brutalist-card rounded-none p-8 bg-white transition-all group">
+<div class="w-16 h-16 border-2 border-primary bg-surface-container flex items-center justify-center mb-8 text-primary shrink-0">
+<span class="material-symbols-outlined text-[40px] font-bold">credit_card</span>
+</div>
+<div class="mb-4 h-6"></div> <!-- spacer to align -->
+<h3 class="font-headline text-3xl font-black text-on-surface mb-4 uppercase">Postpaid SIM</h3>
+<p class="font-body text-sm text-on-surface-variant mb-8 leading-relaxed">Reliable monthly billing with premium network priority and exclusive member benefits.</p>
+<div class="flex items-center justify-between mt-auto pt-6 border-t-2 border-primary-container/20">
+<span class="font-headline text-3xl font-black text-primary">$14.99</span>
+<button class="px-6 py-2 brutalist-btn-primary font-label text-sm font-black uppercase">Buy Now</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Featured Plans Section -->
+<section class="py-24 bg-white border-y-2 border-primary" id="plans">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-gutter">
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+<div>
+<h2 class="font-headline text-4xl font-black text-on-surface mb-4 uppercase tracking-tighter">Featured Plans</h2>
+<p class="font-body text-lg text-on-surface-variant font-medium">The best value plans for your data and voice needs.</p>
+</div>
+<div class="flex border-2 border-primary p-1 bg-background shrink-0">
+<button class="px-8 py-2 bg-primary text-white font-label text-sm font-black uppercase">Monthly</button>
+<button class="px-8 py-2 text-primary font-label text-sm font-black uppercase hover:bg-primary-fixed transition-colors">Annual</button>
+</div>
+</div>
+<div class="grid lg:grid-cols-3 gap-10">
+<!-- Data Plan -->
+<div class="brutalist-border rounded-none bg-background flex flex-col transition-transform hover:-translate-y-2">
+<div class="p-8 pb-4">
+<div class="flex justify-between items-start mb-6">
+<h4 class="font-headline text-2xl font-black uppercase italic">Data Only</h4>
+<span class="material-symbols-outlined text-primary font-bold">database</span>
+</div>
+<div class="flex items-baseline gap-1 mb-8">
+<span class="font-headline text-5xl font-black text-on-surface">$25</span>
+<span class="font-label text-sm font-bold text-on-surface-variant uppercase">/mo</span>
+</div>
+<ul class="space-y-4 mb-8">
+<li class="flex items-center gap-3 text-on-surface font-body text-sm font-medium">
+<span class="material-symbols-outlined text-primary font-black text-[20px]">check</span>
+                                50GB High-speed 5G Data
+                            </li>
+<li class="flex items-center gap-3 text-on-surface font-body text-sm font-medium">
+<span class="material-symbols-outlined text-primary font-black text-[20px]">check</span>
+                                Hotspot Tethering
+                            </li>
+<li class="flex items-center gap-3 text-on-surface/40 font-body text-sm font-medium line-through decoration-2">
+<span class="material-symbols-outlined text-on-surface/40 font-black text-[20px]">close</span>
+                                Voice Calls
+                            </li>
+</ul>
+</div>
+<div class="mt-auto p-8 pt-0">
+<button class="w-full py-4 brutalist-btn-secondary font-headline text-lg font-black uppercase tracking-tight">Add to Cart</button>
+</div>
+</div>
+<!-- Combo Plan (Highlighted) -->
+<div class="brutalist-border rounded-none bg-primary-fixed flex flex-col relative md:scale-105 z-10 transition-transform hover:scale-[1.07]">
+<div class="absolute -top-5 left-1/2 -translate-x-1/2 bg-primary text-white px-6 py-1 border-2 border-primary text-xs font-black uppercase tracking-[0.2em] whitespace-nowrap">Most Popular</div>
+<div class="p-8 pb-4">
+<div class="flex justify-between items-start mb-6">
+<h4 class="font-headline text-2xl font-black uppercase italic">Supreme Combo</h4>
+<span class="material-symbols-outlined text-primary font-bold">star</span>
+</div>
+<div class="flex items-baseline gap-1 mb-8">
+<span class="font-headline text-6xl font-black text-on-surface">$45</span>
+<span class="font-label text-sm font-bold text-on-surface-variant uppercase">/mo</span>
+</div>
+<ul class="space-y-4 mb-8">
+<li class="flex items-center gap-3 text-on-surface font-body text-sm font-bold">
+<span class="material-symbols-outlined text-primary font-black text-[20px]">check</span>
+                                Unlimited 5G Data
+                            </li>
+<li class="flex items-center gap-3 text-on-surface font-body text-sm font-bold">
+<span class="material-symbols-outlined text-primary font-black text-[20px]">check</span>
+                                Unlimited Voice &amp; SMS
+                            </li>
+<li class="flex items-center gap-3 text-on-surface font-body text-sm font-bold">
+<span class="material-symbols-outlined text-primary font-black text-[20px]">check</span>
+                                Global Roaming Included
+                            </li>
+<li class="flex items-center gap-3 text-on-surface font-body text-sm font-bold">
+<span class="material-symbols-outlined text-primary font-black text-[20px]">check</span>
+                                Priority Customer Care
+                            </li>
+</ul>
+</div>
+<div class="mt-auto p-8 pt-0">
+<button class="w-full py-4 bg-primary text-white border-2 border-primary font-headline text-lg font-black uppercase tracking-tight shadow-[4px_4px_0px_0px_#ffffff] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">Add to Cart</button>
+</div>
+</div>
+<!-- Voice Plan -->
+<div class="brutalist-border rounded-none bg-background flex flex-col transition-transform hover:-translate-y-2">
+<div class="p-8 pb-4">
+<div class="flex justify-between items-start mb-6">
+<h4 class="font-headline text-2xl font-black uppercase italic">Voice Focus</h4>
+<span class="material-symbols-outlined text-primary font-bold">call</span>
+</div>
+<div class="flex items-baseline gap-1 mb-8">
+<span class="font-headline text-5xl font-black text-on-surface">$15</span>
+<span class="font-label text-sm font-bold text-on-surface-variant uppercase">/mo</span>
+</div>
+<ul class="space-y-4 mb-8">
+<li class="flex items-center gap-3 text-on-surface font-body text-sm font-medium">
+<span class="material-symbols-outlined text-primary font-black text-[20px]">check</span>
+                                Unlimited National Calls
+                            </li>
+<li class="flex items-center gap-3 text-on-surface font-body text-sm font-medium">
+<span class="material-symbols-outlined text-primary font-black text-[20px]">check</span>
+                                100 International Minutes
+                            </li>
+<li class="flex items-center gap-3 text-on-surface font-body text-sm font-medium">
+<span class="material-symbols-outlined text-primary font-black text-[20px]">check</span>
+                                2GB Emergency Data
+                            </li>
+</ul>
+</div>
+<div class="mt-auto p-8 pt-0">
+<button class="w-full py-4 brutalist-btn-secondary font-headline text-lg font-black uppercase tracking-tight">Add to Cart</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Grid Features Section -->
+<section class="py-24 bg-background">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-gutter">
+<div class="grid md:grid-cols-4 md:grid-rows-2 gap-6 h-auto md:h-[600px]">
+<div class="md:col-span-2 md:row-span-2 brutalist-border bg-primary p-12 flex flex-col justify-end text-white relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-[200px]">shield_with_heart</span>
+</div>
+<h3 class="font-headline text-5xl mb-6 font-black uppercase tracking-tighter italic">Advanced <br/>Security</h3>
+<p class="font-body text-lg mb-10 max-w-sm font-medium">Every SIM and Plan purchase is protected by our carrier-grade encryption and secure wallet system.</p>
+<div class="flex gap-4">
+<span class="px-4 py-2 border-2 border-white font-label text-sm font-bold uppercase">Biometric ID</span>
+<span class="px-4 py-2 border-2 border-white font-label text-sm font-bold uppercase">2FA Support</span>
+</div>
+</div>
+<div class="md:col-span-2 brutalist-border bg-surface-container-high p-10 flex items-center gap-8 transition-colors hover:bg-white">
+<div class="w-24 h-24 border-2 border-primary bg-primary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[48px] font-bold">account_balance_wallet</span>
+</div>
+<div>
+<h3 class="font-headline text-3xl text-on-surface font-black uppercase italic mb-2 tracking-tight">Smart Wallet</h3>
+<p class="font-body text-sm text-on-surface font-medium leading-relaxed">Manage balances, track transaction history, and enjoy instant recharges with a bold interface.</p>
+</div>
+</div>
+<div class="md:col-span-1 brutalist-border bg-tertiary-fixed p-8 flex flex-col justify-between hover:bg-tertiary-container transition-colors">
+<span class="material-symbols-outlined text-primary text-[48px] font-bold">language</span>
+<h4 class="font-headline text-xl font-black uppercase tracking-tight leading-tight mt-6">Global <br/>Reach</h4>
+</div>
+<div class="md:col-span-1 brutalist-border bg-surface-container-highest p-8 flex flex-col justify-between hover:bg-white transition-colors">
+<span class="material-symbols-outlined text-primary text-[48px] font-bold">support_agent</span>
+<h4 class="font-headline text-xl font-black uppercase tracking-tight leading-tight mt-6">24/7 <br/>Expert</h4>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="py-24 bg-white border-t-2 border-primary">
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-gutter">
+<div class="bg-primary p-12 md:p-24 text-center text-white relative overflow-hidden brutalist-border shadow-[12px_12px_0px_0px_#ffcc00]">
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 32px 32px;"></div>
+<h2 class="font-headline text-4xl md:text-6xl font-black mb-10 uppercase tracking-tighter italic">Ready for a <br/>Smarter Connection?</h2>
+<p class="font-body text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-14 font-medium">Join thousands of customers who have simplified their mobile life with SmartSIM's next-gen marketplace.</p>
+<div class="flex flex-col sm:flex-row gap-8 justify-center items-center">
+<button class="px-12 py-5 brutalist-btn-primary font-headline text-xl font-black uppercase tracking-tight w-full sm:w-auto">Create Account</button>
+<button class="px-12 py-5 border-2 border-white text-white font-headline text-xl font-black uppercase tracking-tight hover:bg-white hover:text-primary transition-all w-full sm:w-auto">Contact Sales</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-background border-t-2 border-primary">
+<div class="max-w-container-max mx-auto py-20 px-margin-mobile md:px-gutter grid grid-cols-2 md:grid-cols-4 gap-12">
+<div class="col-span-2 md:col-span-1">
+<a class="inline-block mb-8" href="#">
+<img alt="SmartSIM Logo" class="h-8 w-auto" src="https://lh3.googleusercontent.com/aida/AP1WRLuN0m2mqDfKpZh7daAjdvTr3GWDoMttrV8cTYeJS1fmk3t9YkDlMWvTdZJWfeCaP2KH4IP5SssCE9URPVIy9zvl16iVoBr1wnQoFuPMwTMIkTnMJbK9VIj4hWZVElbt5CyHEDmDJLi0TOJlCfZ8mQpt5EF1mdmBmSXDj4B2aa5Bt49AmyO4MFIM3rFs1pnSe-X21uoVWZdNS5b21ls5gawyMJyZoU38tdRnd4f07V-m_kQ5MHm9VpeaAg"/>
+</a>
+<p class="font-body text-sm text-on-surface-variant font-medium leading-relaxed max-w-xs mb-8">Redefining connectivity through simplicity, transparency, and high-tech solutions.</p>
+<div class="flex gap-4">
+<a class="w-10 h-10 border-2 border-primary flex items-center justify-center hover:bg-primary-fixed transition-colors" href="#"><span class="material-symbols-outlined font-bold">public</span></a>
+<a class="w-10 h-10 border-2 border-primary flex items-center justify-center hover:bg-primary-fixed transition-colors" href="#"><span class="material-symbols-outlined font-bold">groups</span></a>
+<a class="w-10 h-10 border-2 border-primary flex items-center justify-center hover:bg-primary-fixed transition-colors" href="#"><span class="material-symbols-outlined font-bold">campaign</span></a>
+</div>
+</div>
+<div>
+<h5 class="font-label text-xs font-black text-on-surface mb-8 uppercase tracking-[0.2em]">Product</h5>
+<ul class="space-y-4">
+<li class=""><a class="font-label text-sm font-bold text-on-surface-variant hover:underline decoration-2" href="#">SIM Cards</a></li>
+<li class=""><a class="font-label text-sm font-bold text-on-surface-variant hover:underline decoration-2" href="#">Data Plans</a></li>
+<li class=""><a class="font-label text-sm font-bold text-on-surface-variant hover:underline decoration-2" href="#">Coverage Map</a></li>
+<li class=""><a class="font-label text-sm font-bold text-on-surface-variant hover:underline decoration-2" href="#">E-Wallet</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-label text-xs font-black text-on-surface mb-8 uppercase tracking-[0.2em]">Resources</h5>
+<ul class="space-y-4">
+<li class=""><a class="font-label text-sm font-bold text-on-surface-variant hover:underline decoration-2" href="#">Help Center</a></li>
+<li class=""><a class="font-label text-sm font-bold text-on-surface-variant hover:underline decoration-2" href="#">Contact Us</a></li>
+<li class=""><a class="font-label text-sm font-bold text-on-surface-variant hover:underline decoration-2" href="#">Newsletter</a></li>
+<li class=""><a class="font-label text-sm font-bold text-on-surface-variant hover:underline decoration-2" href="#">Find a Store</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-label text-xs font-black text-on-surface mb-8 uppercase tracking-[0.2em]">Legal</h5>
+<ul class="space-y-4">
+<li class=""><a class="font-label text-sm font-bold text-on-surface-variant hover:underline decoration-2" href="#">Privacy Policy</a></li>
+<li class=""><a class="font-label text-sm font-bold text-on-surface-variant hover:underline decoration-2" href="#">Terms of Service</a></li>
+</ul>
+</div>
+</div>
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-gutter py-10 border-t-2 border-primary flex flex-col md:flex-row justify-between items-center gap-6">
+<p class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">© 2024 SmartSIM Telecom. All rights reserved.</p>
+<div class="flex gap-8 uppercase font-label text-[10px] font-black tracking-widest">
+<span class="text-on-surface-variant">Version 4.0.0</span>
+<span class="text-primary bg-primary-fixed px-2">Design System Alpha</span>
+</div>
+</div>
+</footer>
+<script>
+    // Micro-interactions and interactions for Bauhaus aesthetic
+    document.querySelectorAll('button, a').forEach(el => {
+        el.addEventListener('mousedown', () => {
+            el.classList.add('scale-[0.98]');
+        });
+        el.addEventListener('mouseup', () => {
+            el.classList.remove('scale-[0.98]');
+        });
+    });
+
+    // Simple scroll behavior for header
+    window.addEventListener('scroll', () => {
+        const header = document.querySelector('nav');
+        if (window.scrollY > 20) {
+            header.style.boxShadow = '0px 8px 0px -4px #1a1a1a';
+        } else {
+            header.style.boxShadow = 'none';
+        }
+    });
+</script>
+</body></html>

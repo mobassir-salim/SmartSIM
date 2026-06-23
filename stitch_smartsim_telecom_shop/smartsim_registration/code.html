@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SmartSIM | Join the Network</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed": "#ffcc00",
+                    "on-tertiary-fixed-variant": "#1a1a1a",
+                    "on-secondary": "#1a1a1a",
+                    "on-secondary-container": "#1a1a1a",
+                    "tertiary-fixed": "#d6e3ff",
+                    "surface-tint": "#1a1a1a",
+                    "secondary-fixed-dim": "#ffb3ab",
+                    "secondary": "#e63b2e",
+                    "on-secondary-fixed-variant": "#1a1a1a",
+                    "inverse-primary": "#f5f0e8",
+                    "on-primary-fixed": "#1a1a1a",
+                    "on-background": "#1a1a1a",
+                    "outline": "#1a1a1a",
+                    "tertiary-fixed-dim": "#a8c6ff",
+                    "on-surface-variant": "#4a4a4a",
+                    "background": "#f5f0e8",
+                    "on-error-container": "#93000a",
+                    "secondary-container": "#ffdad6",
+                    "primary-fixed-dim": "#e6b800",
+                    "on-tertiary-fixed": "#1a1a1a",
+                    "secondary-fixed": "#ffdad6",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed-variant": "#1a1a1a",
+                    "on-tertiary-container": "#1a1a1a",
+                    "on-primary": "#ffffff",
+                    "tertiary": "#0055ff",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-low": "#f2ede5",
+                    "surface-bright": "#faf7f2",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#e2ddd4",
+                    "on-secondary-fixed": "#1a1a1a",
+                    "tertiary-container": "#d6e3ff",
+                    "primary": "#1a1a1a",
+                    "surface-dim": "#d6d1c9",
+                    "surface-variant": "#e8e3da",
+                    "surface": "#f5f0e8",
+                    "surface-container-high": "#e8e3da",
+                    "surface-container": "#eee9e0",
+                    "primary-container": "#ffcc00",
+                    "error": "#cc0000",
+                    "inverse-on-surface": "#f5f0e8",
+                    "on-primary-container": "#1a1a1a",
+                    "on-surface": "#1a1a1a",
+                    "inverse-surface": "#1a1a1a",
+                    "outline-variant": "#d0cbc3",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Space Grotesk"],
+                    "display": ["Space Grotesk"],
+                    "body": ["Inter"],
+                    "label": ["Space Grotesk"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .neo-shadow {
+            box-shadow: 8px 8px 0px 0px #1a1a1a;
+        }
+        .neo-shadow-sm {
+            box-shadow: 4px 4px 0px 0px #1a1a1a;
+        }
+        .neo-shadow-hover:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 10px 10px 0px 0px #1a1a1a;
+        }
+        .neo-shadow-active:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px 0px #1a1a1a;
+        }
+        .border-3 {
+            border-width: 3px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background font-body text-on-background selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col overflow-x-hidden">
+<!-- TopNavBar -->
+<header class="bg-background dark:bg-background border-b-4 border-primary dark:border-primary fixed top-0 w-full z-50">
+<nav class="flex justify-between items-center w-full px-6 py-4 max-w-none">
+<div class="flex items-center gap-8">
+<a class="flex items-center" href="/">
+<img alt="SmartSIM Logo" class="h-10 object-contain" src="https://lh3.googleusercontent.com/aida/AP1WRLuN0m2mqDfKpZh7daAjdvTr3GWDoMttrV8cTYeJS1fmk3t9YkDlMWvTdZJWfeCaP2KH4IP5SssCE9URPVIy9zvl16iVoBr1wnQoFuPMwTMIkTnMJbK9VIj4hWZVElbt5CyHEDmDJLi0TOJlCfZ8mQpt5EF1mdmBmSXDj4B2aa5Bt49AmyO4MFIM3rFs1pnSe-X21uoVWZdNS5b21ls5gawyMJyZoU38tdRnd4f07V-m_kQ5MHm9VpeaAg"/>
+</a>
+<div class="hidden md:flex gap-6">
+<a class="text-primary dark:text-primary font-bold uppercase hover:bg-primary-container dark:hover:bg-primary-container transition-colors px-2 py-1" href="#">Plans</a>
+<a class="text-primary dark:text-primary font-bold uppercase hover:bg-primary-container dark:hover:bg-primary-container transition-colors px-2 py-1" href="#">eSIM</a>
+<a class="text-primary dark:text-primary font-bold uppercase hover:bg-primary-container dark:hover:bg-primary-container transition-colors px-2 py-1" href="#">Coverage</a>
+<a class="text-primary dark:text-primary font-bold uppercase hover:bg-primary-container dark:hover:bg-primary-container transition-colors px-2 py-1" href="#">Support</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<a class="text-primary dark:text-primary font-bold uppercase hover:bg-primary-container dark:hover:bg-primary-container transition-colors px-4 py-2 border-3 border-primary bg-background neo-shadow-sm active:translate-x-1 active:translate-y-1 active:shadow-none transition-all" href="#">Login</a>
+<a class="text-on-primary-container dark:text-on-primary-container font-bold uppercase bg-primary-container hover:bg-primary transition-colors px-4 py-2 border-3 border-primary neo-shadow-sm active:translate-x-1 active:translate-y-1 active:shadow-none transition-all" href="#">Register</a>
+</div>
+</nav>
+</header>
+<main class="flex-grow flex items-center justify-center px-6 pt-32 pb-20">
+<div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+<!-- Left Side: Visual/Context -->
+<div class="lg:col-span-5 hidden lg:block space-y-8">
+<h2 class="text-8xl font-headline font-black leading-none uppercase tracking-tighter">
+                    JOIN THE <span class="bg-primary-container px-2">NETWORK</span>
+</h2>
+<p class="text-xl font-medium border-l-8 border-secondary pl-6 py-2">
+                    Future-proof your connectivity with Bauhaus-inspired digital infrastructure. Global coverage, zero borders.
+                </p>
+<div class="grid grid-cols-2 gap-4 mt-12">
+<div class="border-3 border-primary p-4 bg-surface-container-highest neo-shadow-sm">
+<span class="material-symbols-outlined text-4xl block mb-2" data-icon="language">language</span>
+<p class="font-headline font-bold uppercase text-sm">200+ Countries</p>
+</div>
+<div class="border-3 border-primary p-4 bg-primary-container neo-shadow-sm">
+<span class="material-symbols-outlined text-4xl block mb-2" data-icon="bolt">bolt</span>
+<p class="font-headline font-bold uppercase text-sm">Instant Activation</p>
+</div>
+</div>
+</div>
+<!-- Right Side: Registration Form -->
+<div class="lg:col-span-7 flex justify-center lg:justify-end">
+<div class="w-full max-w-xl bg-surface border-3 border-primary p-8 md:p-12 neo-shadow relative overflow-hidden">
+<!-- Bauhaus Accent Corner -->
+<div class="absolute top-0 right-0 w-16 h-16 bg-secondary border-b-3 border-l-3 border-primary"></div>
+<div class="mb-10 lg:hidden">
+<h1 class="text-5xl font-headline font-black uppercase leading-tight mb-4">Join the Network</h1>
+</div>
+<form class="space-y-6">
+<div class="space-y-1">
+<label class="block font-headline font-bold uppercase text-sm tracking-widest" for="name">Full Name</label>
+<input class="w-full bg-background border-b-4 border-t-0 border-l-0 border-r-0 border-primary focus:ring-0 focus:border-secondary font-headline font-bold text-lg px-0 py-3 placeholder:opacity-30" id="name" placeholder="HERBERT BAYER" type="text"/>
+</div>
+<div class="space-y-1">
+<label class="block font-headline font-bold uppercase text-sm tracking-widest" for="email">Email Address</label>
+<input class="w-full bg-background border-b-4 border-t-0 border-l-0 border-r-0 border-primary focus:ring-0 focus:border-secondary font-headline font-bold text-lg px-0 py-3 placeholder:opacity-30" id="email" placeholder="USER@SMARTSIM.IO" type="email"/>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-1">
+<label class="block font-headline font-bold uppercase text-sm tracking-widest" for="mobile">Mobile Number</label>
+<input class="w-full bg-background border-b-4 border-t-0 border-l-0 border-r-0 border-primary focus:ring-0 focus:border-secondary font-headline font-bold text-lg px-0 py-3 placeholder:opacity-30" id="mobile" placeholder="+49 000 0000" type="tel"/>
+</div>
+<div class="space-y-1">
+<label class="block font-headline font-bold uppercase text-sm tracking-widest" for="password">Password</label>
+<input class="w-full bg-background border-b-4 border-t-0 border-l-0 border-r-0 border-primary focus:ring-0 focus:border-secondary font-headline font-bold text-lg px-0 py-3 placeholder:opacity-30" id="password" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="flex items-start gap-3 pt-4">
+<input class="mt-1 w-6 h-6 rounded-none border-3 border-primary text-secondary focus:ring-0 cursor-pointer" id="terms" type="checkbox"/>
+<label class="text-sm font-medium leading-tight select-none" for="terms">
+                                I agree to the <a class="text-tertiary font-bold underline decoration-2 underline-offset-2 hover:text-primary transition-colors" href="#">Terms of Service</a> and <a class="text-tertiary font-bold underline decoration-2 underline-offset-2 hover:text-primary transition-colors" href="#">Privacy Policy</a>. Form follows function.
+                            </label>
+</div>
+<div class="pt-8 space-y-6">
+<button class="w-full bg-primary-container text-on-primary-container font-headline font-black uppercase text-2xl py-5 border-3 border-primary neo-shadow-sm neo-shadow-hover neo-shadow-active transition-all flex items-center justify-center gap-4 group" type="submit">
+                                CREATE ACCOUNT
+                                <span class="material-symbols-outlined font-bold group-hover:translate-x-2 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<div class="text-center">
+<p class="font-headline font-bold uppercase text-xs tracking-widest text-on-surface-variant mb-2">Already a member?</p>
+<a class="inline-block text-tertiary font-black uppercase text-lg border-b-4 border-tertiary hover:text-secondary hover:border-secondary transition-all" href="#">Login instead</a>
+</div>
+</div>
+</form>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-primary dark:bg-primary border-t-4 border-primary">
+<div class="w-full px-6 py-12 flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex flex-col items-center md:items-start gap-4">
+<span class="text-lg font-headline font-black text-background uppercase tracking-tighter">SMARTSIM</span>
+<p class="font-label font-bold uppercase tracking-widest text-xs text-background opacity-80">
+                    © 2024 SMARTSIM. FORM FOLLOWS FUNCTION.
+                </p>
+</div>
+<div class="flex flex-wrap justify-center gap-8">
+<a class="font-label font-bold uppercase tracking-widest text-xs text-background hover:text-primary-container transition-colors" href="#">Privacy Policy</a>
+<a class="font-label font-bold uppercase tracking-widest text-xs text-background hover:text-primary-container transition-colors" href="#">Terms of Service</a>
+<a class="font-label font-bold uppercase tracking-widest text-xs text-background hover:text-primary-container transition-colors" href="#">Carrier Partners</a>
+<a class="font-label font-bold uppercase tracking-widest text-xs text-background hover:text-primary-container transition-colors" href="#">Contact</a>
+</div>
+<div class="flex gap-4">
+<div class="w-10 h-10 border-2 border-background flex items-center justify-center text-background hover:bg-background hover:text-primary transition-all cursor-pointer">
+<span class="material-symbols-outlined text-xl" data-icon="share">share</span>
+</div>
+<div class="w-10 h-10 border-2 border-background flex items-center justify-center text-background hover:bg-background hover:text-primary transition-all cursor-pointer">
+<span class="material-symbols-outlined text-xl" data-icon="language">language</span>
+</div>
+</div>
+</div>
+</footer>
+<script>
+        // Micro-interactions for input focus effects
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.querySelector('label').style.color = '#e63b2e';
+            });
+            input.addEventListener('blur', () => {
+                input.parentElement.querySelector('label').style.color = '';
+            });
+        });
+
+        // Simple form validation visual feedback
+        const form = document.querySelector('form');
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = form.querySelector('button[type="submit"]');
+            btn.innerHTML = 'PROCESSING...';
+            btn.style.backgroundColor = '#1a1a1a';
+            btn.style.color = '#ffcc00';
+            
+            setTimeout(() => {
+                btn.innerHTML = 'SUCCESS';
+                btn.style.backgroundColor = '#0055ff';
+                btn.style.color = '#ffffff';
+            }, 1500);
+        });
+    </script>
+</body></html>
