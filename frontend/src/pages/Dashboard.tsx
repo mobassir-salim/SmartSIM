@@ -35,7 +35,7 @@ const Dashboard: React.FC = () => {
     try {
       setOrdersLoading(true);
       setOrdersError('');
-      const res = await fetch('http://localhost/api/orders?limit=50', {
+      const res = await fetch('/api/orders?limit=50', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to load orders');
@@ -54,7 +54,7 @@ const Dashboard: React.FC = () => {
     try {
       setWalletLoading(true);
       setWalletError('');
-      const res = await fetch('http://localhost/api/wallet', {
+      const res = await fetch('/api/wallet', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to load wallet');
@@ -62,7 +62,7 @@ const Dashboard: React.FC = () => {
       setWallet(data);
 
       // Fetch wallet transactions
-      const txRes = await fetch('http://localhost/api/wallet/transactions?limit=50', {
+      const txRes = await fetch('/api/wallet/transactions?limit=50', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (txRes.ok) {
@@ -88,7 +88,7 @@ const Dashboard: React.FC = () => {
     setTopUpLoading(true);
     setTopUpMsg('');
     try {
-      const res = await fetch('http://localhost/api/wallet/add-money', {
+      const res = await fetch('/api/wallet/add-money', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount, description: 'Manual top-up' }),

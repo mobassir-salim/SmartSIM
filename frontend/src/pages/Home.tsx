@@ -34,7 +34,7 @@ function Home() {
 
   useEffect(() => {
     // Check Monolith
-    fetch('http://localhost/api/health')
+    fetch('/api/health')
       .then((res) => {
         if (!res.ok) throw new Error('Not OK');
         return res.json();
@@ -48,7 +48,7 @@ function Home() {
       });
 
     // Check Auth Service
-    fetch('http://localhost/api/auth/health')
+    fetch('/api/auth/health')
       .then((res) => {
         if (!res.ok) throw new Error('Not OK');
         return res.json();
@@ -61,7 +61,7 @@ function Home() {
       });
 
     // Check SIM Service
-    fetch('http://localhost/api/sims/health')
+    fetch('/api/sims/health')
       .then((res) => {
         if (!res.ok) throw new Error('Not OK');
         return res.json();
@@ -74,7 +74,7 @@ function Home() {
       });
 
     // Check Plan Service
-    fetch('http://localhost/api/plans/health')
+    fetch('/api/plans/health')
       .then((res) => {
         if (!res.ok) throw new Error('Not OK');
         return res.json();
@@ -87,7 +87,7 @@ function Home() {
       });
 
     // Check Wallet Service
-    fetch('http://localhost/api/wallet/health')
+    fetch('/api/wallet/health')
       .then((res) => {
         if (!res.ok) throw new Error('Not OK');
         return res.json();
@@ -100,7 +100,7 @@ function Home() {
       });
 
     // Check Order Service
-    fetch('http://localhost/api/orders/health')
+    fetch('/api/orders/health')
       .then((res) => {
         if (!res.ok) throw new Error('Not OK');
         return res.json();
@@ -113,7 +113,7 @@ function Home() {
       });
 
     // Check Notification Service
-    fetch('http://localhost/api/notifications/health')
+    fetch('/api/notifications/health')
       .then((res) => {
         if (!res.ok) throw new Error('Not OK');
         return res.json();
@@ -126,7 +126,7 @@ function Home() {
       });
 
     // Fetch SIM Catalog
-    fetch('http://localhost/api/sims')
+    fetch('/api/sims')
       .then((res) => {
         if (!res.ok) throw new Error('Not OK');
         return res.json();
@@ -141,7 +141,7 @@ function Home() {
       });
 
     // Fetch Plan Catalog
-    fetch('http://localhost/api/plans')
+    fetch('/api/plans')
       .then((res) => {
         if (!res.ok) throw new Error('Not OK');
         return res.json();

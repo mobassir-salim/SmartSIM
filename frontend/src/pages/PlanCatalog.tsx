@@ -18,7 +18,7 @@ const PlanCatalog: React.FC = () => {
       try {
         setLoading(true);
         setError('');
-        const res = await fetch('http://localhost/api/plans');
+        const res = await fetch('/api/plans');
         if (!res.ok) throw new Error('Failed to load plans catalog');
         const data = await res.json();
         setPlans(data || []);

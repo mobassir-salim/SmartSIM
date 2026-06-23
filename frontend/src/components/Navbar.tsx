@@ -31,7 +31,7 @@ const Navbar: React.FC = () => {
     setCheckoutMessage('');
 
     try {
-      const res = await fetch('http://localhost/api/orders', {
+      const res = await fetch('/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -18,7 +18,7 @@ const SIMCatalog: React.FC = () => {
       try {
         setLoading(true);
         setError('');
-        const res = await fetch('http://localhost/api/sims');
+        const res = await fetch('/api/sims');
         if (!res.ok) throw new Error('Failed to load SIM cards catalog');
         const data = await res.json();
         setSims(data || []);
