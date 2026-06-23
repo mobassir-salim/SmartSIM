@@ -59,6 +59,13 @@ def create_and_print_otp(db: Session, email: str, purpose: str) -> str:
     print(f"Expires in 10 minutes")
     print(f"{border}\n")
     
+    # Send to centralized logging (Kibana)
+    logger.info(f"[{purpose.upper()}] OTP CODE FOR {email}: {otp_code}", extra={
+        "event": "otp_created",
+        "email": email,
+        "purpose": purpose
+    })
+    
     return otp_code
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
