@@ -124,7 +124,6 @@ const AdminDashboard: React.FC = () => {
   }, [user, navigate]);
 
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [loading, setLoading] = useState(false);
   const [error, setError]   = useState('');
   const [success, setSuccess] = useState('');
 
@@ -163,7 +162,6 @@ const AdminDashboard: React.FC = () => {
   };
 
   const fetchAll = useCallback(async () => {
-    setLoading(true);
     try {
       const [simsR, plansR, usersR, ordersR] = await Promise.allSettled([
         api.get('/sims?include_inactive=true'),
@@ -177,8 +175,6 @@ const AdminDashboard: React.FC = () => {
       if (ordersR.status === 'fulfilled') setOrders(ordersR.value.data?.orders || ordersR.value.data || []);
     } catch (e: any) {
       notify(e.response?.data?.detail || 'Error loading data', true);
-    } finally {
-      setLoading(false);
     }
   }, []);
 

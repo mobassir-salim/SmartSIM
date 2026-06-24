@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { ArrowRight, Server, Database, Layers, ShieldCheck, Cpu, Wallet, ShoppingBag, Bell } from 'lucide-react';
+import { ArrowRight, Layers } from 'lucide-react';
 import Navbar from '../components/Navbar';
 
 function Home() {
