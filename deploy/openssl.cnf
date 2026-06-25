@@ -1,0 +1,22 @@
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+C = US
+ST = California
+L = Mountain View
+O = SmartSIM
+CN = portal.smartsim.local
+
+[v3_req]
+keyUsage = digitalSignature, keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = portal.smartsim.local
+DNS.2 = crm.smartsim.local
+DNS.3 = inventory.smartsim.local
+DNS.4 = oms.smartsim.local

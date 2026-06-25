@@ -1,29 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--brand-bg, #f5f0e8);
+  color: var(--brand-text, #1a1a1a);
+}
+
 @theme {
-  --color-brand-bg: #f5f0e8;
-  --color-brand-text: #1a1a1a;
-  --color-brand-primary: #1a1a1a;
-  --color-brand-primary-container: #ffcc00;
-  --color-brand-secondary: #e63b2e;
-  --color-brand-tertiary: #0055ff;
+  --color-brand-bg: var(--brand-bg, #f5f0e8);
+  --color-brand-text: var(--brand-text, #1a1a1a);
+  --color-brand-primary: var(--brand-primary, #1a1a1a);
+  --color-brand-primary-container: var(--brand-primary-container, #ffcc00);
+  --color-brand-secondary: var(--brand-secondary, #e63b2e);
+  --color-brand-tertiary: var(--brand-tertiary, #0055ff);
   --color-brand-surface-lowest: #ffffff;
-  --color-brand-surface-low: #f2ede5;
-  --color-brand-surface: #f5f0e8;
-  --color-brand-surface-high: #e8e3da;
-  --color-brand-surface-highest: #e2ddd4;
-  --color-brand-surface-dim: #d6d1c9;
+  --color-brand-surface-low: var(--brand-surface-low, #f2ede5);
+  --color-brand-surface: var(--brand-surface, #f5f0e8);
+  --color-brand-surface-high: var(--brand-surface-high, #e8e3da);
+  --color-brand-surface-highest: var(--brand-surface-highest, #e2ddd4);
+  --color-brand-surface-dim: var(--brand-surface-dim, #d6d1c9);
   
   --font-serif: "Space Grotesk", system-ui, sans-serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --font-headline: "Space Grotesk", system-ui, sans-serif;
-}
-
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: #f5f0e8;
-  color: #1a1a1a;
 }
 
 /* Neo-Brutalist utility classes */
@@ -80,4 +80,52 @@ body {
 
 .font-headline {
   font-family: 'Space Grotesk', sans-serif;
+}
+
+.theme-portal-blue {
+  --brand-bg: #f0f7ff;
+  --brand-primary-container: #3b82f6;
+  --brand-secondary: #1d4ed8;
+  --brand-tertiary: #60a5fa;
+  --brand-surface-low: #e0f2fe;
+  --brand-surface: #f0f9ff;
+  --brand-surface-high: #bae6fd;
+  --brand-surface-highest: #7dd3fc;
+  --brand-surface-dim: #38bdf8;
+}
+
+.theme-portal-green {
+  --brand-bg: #f0fdf4;
+  --brand-primary-container: #10b981;
+  --brand-secondary: #047857;
+  --brand-tertiary: #34d399;
+  --brand-surface-low: #dcfce7;
+  --brand-surface: #f0fdf4;
+  --brand-surface-high: #bbf7d0;
+  --brand-surface-highest: #86efac;
+  --brand-surface-dim: #4ade80;
+}
+
+.theme-portal-orange {
+  --brand-bg: #fff7ed;
+  --brand-primary-container: #f97316;
+  --brand-secondary: #c2410c;
+  --brand-tertiary: #fb923c;
+  --brand-surface-low: #ffedd5;
+  --brand-surface: #fff7ed;
+  --brand-surface-high: #fed7aa;
+  --brand-surface-highest: #fdba74;
+  --brand-surface-dim: #fb923c;
+}
+
+.theme-portal-purple {
+  --brand-bg: #faf5ff;
+  --brand-primary-container: #8b5cf6;
+  --brand-secondary: #6d28d9;
+  --brand-tertiary: #a78bfa;
+  --brand-surface-low: #f3e8ff;
+  --brand-surface: #faf5ff;
+  --brand-surface-high: #e9d5ff;
+  --brand-surface-highest: #d8b4fe;
+  --brand-surface-dim: #c084fc;
 }

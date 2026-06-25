@@ -16,7 +16,7 @@ const Navbar: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    window.location.href = 'https://portal.smartsim.local';
   };
 
   const handleCartCheckout = async () => {
@@ -24,6 +24,13 @@ const Navbar: React.FC = () => {
     const token = localStorage.getItem('access_token');
     if (!token) {
       navigate('/login', { state: { from: location } });
+      return;
+    }
+
+    const hasSim = cart.some((item) => item.type === 'SIM');
+    if (hasSim) {
+      setShowCart(false);
+      navigate('/customer/select-number');
       return;
     }
 
@@ -76,24 +83,30 @@ const Navbar: React.FC = () => {
     <>
       <header className="border-b-4 border-brand-primary bg-white sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 decoration-none">
+          <a href="https://portal.smartsim.local" className="flex items-center gap-2.5 decoration-none">
             <div className="h-10 w-10 bg-brand-primary-container border-2 border-brand-primary flex items-center justify-center font-headline font-black text-xl text-brand-primary">
               S
             </div>
             <span className="font-headline font-black text-2xl tracking-tighter text-brand-primary uppercase">
               Smart<span className="text-brand-secondary">SIM</span>
             </span>
-          </Link>
+          </a>
 
           <nav className="hidden md:flex items-center gap-6 font-headline font-black text-sm uppercase tracking-wide">
-            <Link to="/" className="text-brand-primary hover:text-brand-secondary transition-colors">Home</Link>
-            <Link to="/sims" className="text-brand-primary hover:text-brand-secondary transition-colors">SIM Catalog</Link>
-            <Link to="/plans" className="text-brand-primary hover:text-brand-secondary transition-colors">Plan Catalog</Link>
+            <a href="https://portal.smartsim.local" className="text-brand-primary hover:text-brand-secondary transition-colors">Home</a>
+            <a href="https://portal.smartsim.local/sims" className="text-brand-primary hover:text-brand-secondary transition-colors">SIM Catalog</a>
+            <a href="https://portal.smartsim.local/plans" className="text-brand-primary hover:text-brand-secondary transition-colors">Plan Catalog</a>
             {user && (
-              <Link to="/dashboard" className="text-brand-primary hover:text-brand-secondary transition-colors">Dashboard</Link>
+              <a href="https://portal.smartsim.local/dashboard" className="text-brand-primary hover:text-brand-secondary transition-colors">Dashboard</a>
             )}
-            {user && user.role === 'admin' && (
-              <Link to="/admin" className="text-brand-secondary hover:text-brand-secondary/80 transition-colors font-extrabold bg-brand-primary-container/30 px-2 py-1 border border-brand-secondary">Admin Panel</Link>
+            {user && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'operations_admin' || user.role === 'support_agent') && (
+              <a href="https://crm.smartsim.local" className="text-brand-secondary hover:text-brand-secondary/80 transition-colors font-extrabold bg-brand-primary-container/30 px-2 py-1 border border-brand-secondary">CRM</a>
+            )}
+            {user && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'inventory_admin') && (
+              <a href="https://inventory.smartsim.local" className="text-brand-secondary hover:text-brand-secondary/80 transition-colors font-extrabold bg-brand-primary-container/30 px-2 py-1 border border-brand-secondary">Inventory</a>
+            )}
+            {user && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'operations_admin' || user.role === 'system_admin') && (
+              <a href="https://oms.smartsim.local" className="text-brand-secondary hover:text-brand-secondary/80 transition-colors font-extrabold bg-brand-primary-container/30 px-2 py-1 border border-brand-secondary">OMS</a>
             )}
           </nav>
 
@@ -126,18 +139,18 @@ const Navbar: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <Link
-                  to="/login"
+                <a
+                  href="https://portal.smartsim.local/login"
                   className="text-xs font-headline font-black uppercase text-brand-primary hover:bg-brand-primary-container px-3 py-2 transition-all"
                 >
                   Sign In
-                </Link>
-                <Link
-                  to="/register"
+                </a>
+                <a
+                  href="https://portal.smartsim.local/register"
                   className="text-xs font-headline font-black uppercase bg-brand-primary-container text-brand-primary px-4 py-2.5 border-2 border-brand-primary neo-brutal-shadow-sm hover:bg-brand-primary hover:text-white transition-all"
                 >
                   Get Started
-                </Link>
+                </a>
               </div>
             )}
           </div>

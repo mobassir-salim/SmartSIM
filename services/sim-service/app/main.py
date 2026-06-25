@@ -10,6 +10,7 @@ from app.core.logging import setup_logging
 from app.models.sim import Sim
 from app.models.sim_inventory import SimInventory
 from app.models.sim_assignment import SimAssignment
+from app.models.mobile_number_inventory import MobileNumberInventory
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
@@ -81,6 +82,34 @@ app.add_middleware(
 
 # Include API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+import threading
+from sqlalchemy.sql import text
+from app.core.database import SessionLocal
+
+def release_expired_reservations_worker():
+    while True:
+        try:
+            db = SessionLocal()
+            # Update expired reservations
+            db.execute(
+                text(
+                    "UPDATE mobile_number_inventory "
+                    "SET status = 'AVAILABLE', reserved_by_customer_id = NULL, "
+                    "reserved_at = NULL, reservation_expiry = NULL "
+                    "WHERE status = 'RESERVED' AND reservation_expiry < NOW()"
+                )
+            )
+            db.commit()
+            db.close()
+        except Exception as e:
+            pass
+        time.sleep(60)
+
+@app.on_event("startup")
+def startup_event():
+    thread = threading.Thread(target=release_expired_reservations_worker, daemon=True)
+    thread.start()
 
 @app.get("/")
 def root():

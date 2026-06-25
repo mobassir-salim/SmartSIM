@@ -8,6 +8,9 @@ class SimAssignment(Base):
     id = Column(Integer, primary_key=True, index=True)
     inventory_id = Column(Integer, ForeignKey("sim_inventory.id", ondelete="CASCADE"), nullable=False)
     customer_id = Column(Integer, nullable=False)
-    order_id = Column(Integer, nullable=True)
+    order_id = Column(String, nullable=True)
     msisdn = Column(String, unique=True, index=True, nullable=False)
+    iccid = Column(String, nullable=False)
+    imsi = Column(String, nullable=False)
+    assignment_status = Column(String, default="ALLOCATED", nullable=False)  # ALLOCATED, ACTIVATED, DEACTIVATED
     assigned_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

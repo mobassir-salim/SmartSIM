@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from app.api.deps import get_db, get_current_admin, TokenData
+from app.api.deps import get_db, get_current_crm_admin, TokenData
 from app.models.user import User
 from app.models.customer_profile import CustomerProfile
 from app.models.customer_plan_history import CustomerPlanHistory
@@ -30,7 +30,7 @@ def get_or_create_profile(db: Session, user_id: int) -> CustomerProfile:
 @router.get("/customer/{id}", response_model=CustomerProfileOut)
 def get_customer_details(
     id: int,
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_crm_admin),
     db: Session = Depends(get_db)
 ):
     """Retrieve complete customer profile lifecycle details."""
@@ -157,7 +157,19 @@ def get_customer_details(
             "role": user.role,
             "is_active": user.is_active,
             "created_at": user.created_at,
+            "father_name": profile.father_name,
+            "dob": profile.dob,
+            "gender": profile.gender,
+            "alternate_mobile": profile.alternate_mobile,
             "address": profile.address,
+            "city": profile.city,
+            "state": profile.state,
+            "pin_code": profile.pin_code,
+            "country": profile.country,
+            "id_type": profile.id_type,
+            "id_number": profile.id_number,
+            "id_issue_date": profile.id_issue_date,
+            "id_expiry_date": profile.id_expiry_date,
             "notes": profile.notes,
             "profile_status": profile.status
         },
@@ -179,7 +191,7 @@ def search_crm_customers(
     order_id: Optional[str] = Query(None),
     email: Optional[str] = Query(None),
     name: Optional[str] = Query(None),
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_crm_admin),
     db: Session = Depends(get_db)
 ):
     """Search customers by MSISDN, ICCID, IMSI, Order ID, Email, or Customer Name."""
@@ -283,7 +295,19 @@ def search_crm_customers(
             "role": u.role,
             "is_active": u.is_active,
             "created_at": u.created_at,
+            "father_name": profile.father_name,
+            "dob": profile.dob,
+            "gender": profile.gender,
+            "alternate_mobile": profile.alternate_mobile,
             "address": profile.address,
+            "city": profile.city,
+            "state": profile.state,
+            "pin_code": profile.pin_code,
+            "country": profile.country,
+            "id_type": profile.id_type,
+            "id_number": profile.id_number,
+            "id_issue_date": profile.id_issue_date,
+            "id_expiry_date": profile.id_expiry_date,
             "notes": profile.notes,
             "profile_status": profile.status
         })
@@ -296,7 +320,7 @@ def search_crm_customers(
 @router.put("/customer")
 def update_crm_customer(
     cust_in: CustomerUpdate,
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_crm_admin),
     db: Session = Depends(get_db)
 ):
     """Update user account and CRM profile attributes."""
@@ -321,6 +345,30 @@ def update_crm_customer(
             
     if cust_in.address is not None:
         profile.address = cust_in.address
+    if cust_in.father_name is not None:
+        profile.father_name = cust_in.father_name
+    if cust_in.dob is not None:
+        profile.dob = cust_in.dob
+    if cust_in.gender is not None:
+        profile.gender = cust_in.gender
+    if cust_in.alternate_mobile is not None:
+        profile.alternate_mobile = cust_in.alternate_mobile
+    if cust_in.city is not None:
+        profile.city = cust_in.city
+    if cust_in.state is not None:
+        profile.state = cust_in.state
+    if cust_in.pin_code is not None:
+        profile.pin_code = cust_in.pin_code
+    if cust_in.country is not None:
+        profile.country = cust_in.country
+    if cust_in.id_type is not None:
+        profile.id_type = cust_in.id_type
+    if cust_in.id_number is not None:
+        profile.id_number = cust_in.id_number
+    if cust_in.id_issue_date is not None:
+        profile.id_issue_date = cust_in.id_issue_date
+    if cust_in.id_expiry_date is not None:
+        profile.id_expiry_date = cust_in.id_expiry_date
     if cust_in.notes is not None:
         profile.notes = cust_in.notes
         

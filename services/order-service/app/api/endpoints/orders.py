@@ -126,6 +126,7 @@ def create_order(
         user_id=user_id,
         status=OrderStatus.PENDING,
         total_amount=total_amount,
+        msisdn=body.msisdn,
     )
     db.add(db_order)
     db.flush()  # Generate db_order.id
@@ -141,7 +142,13 @@ def create_order(
 
     # Run the journey lifecycle sequential steps
     from app.core.lifecycle import execute_order_lifecycle
-    success = execute_order_lifecycle(db, db_order, token)
+    success = execute_order_lifecycle(
+        db, 
+        db_order, 
+        token, 
+        msisdn=body.msisdn, 
+        customer_info=body.customer_info.model_dump() if body.customer_info else None
+    )
     
     if not success:
         # Retrieve the failed journey step to raise the correct error details

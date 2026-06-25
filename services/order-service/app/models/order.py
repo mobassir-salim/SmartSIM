@@ -25,6 +25,7 @@ class Order(Base):
     user_id = Column(String, nullable=False, index=True)
     status = Column(SAEnum(OrderStatus), default=OrderStatus.PENDING, nullable=False)
     total_amount = Column(Numeric(precision=12, scale=2), default=0.00, nullable=False)
+    msisdn = Column(String, nullable=True) # Selected preferred mobile number
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from app.core.database import get_db
-from app.api.deps import get_current_admin, TokenData
+from app.api.deps import get_current_oms_admin, TokenData
 from app.models.order import Order, OrderStatus
 from app.models.order_journey import OrderJourney
 from app.models.service_execution_log import ServiceExecutionLog
@@ -24,7 +24,7 @@ def list_all_orders(
     status_filter: Optional[str] = Query(None, alias="status"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, le=200),
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_oms_admin),
     db: Session = Depends(get_db)
 ):
     query = db.query(Order)
@@ -64,7 +64,7 @@ def list_all_orders(
 
 @router.get("/failed", response_model=List[OrderAdminDetail])
 def list_failed_orders(
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_oms_admin),
     db: Session = Depends(get_db)
 ):
     return list_all_orders(status="FAILED", admin=admin, db=db)
@@ -78,7 +78,7 @@ def get_system_tracker_logs(
     customer_id: Optional[str] = Query(None),
     msisdn: Optional[str] = Query(None),
     service_name: Optional[str] = Query(None),
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_oms_admin),
     db: Session = Depends(get_db)
 ):
     query = db.query(ServiceExecutionLog)
@@ -115,7 +115,7 @@ def get_system_tracker_logs(
 @router.get("/{order_id}", response_model=OrderAdminDetail)
 def get_order_admin_detail(
     order_id: str,
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_oms_admin),
     db: Session = Depends(get_db)
 ):
     o = db.query(Order).filter(Order.id == order_id).first()
@@ -150,7 +150,7 @@ def get_order_admin_detail(
 @router.get("/{order_id}/journey", response_model=List[JourneyStepOut])
 def get_order_journey(
     order_id: str,
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_oms_admin),
     db: Session = Depends(get_db)
 ):
     return db.query(OrderJourney).filter(OrderJourney.order_id == order_id).order_by(OrderJourney.id.asc()).all()
@@ -161,7 +161,7 @@ def get_order_journey(
 @router.post("/retry")
 def retry_failed_order(
     body: dict,
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_oms_admin),
     db: Session = Depends(get_db)
 ):
     order_id = body.get("order_id")
@@ -235,7 +235,7 @@ def retry_failed_order_with_token(order_id: str, admin: TokenData, db: Session):
     customer_token = create_access_token(subject=order.user_id, role="customer")
     
     from app.core.lifecycle import execute_order_lifecycle
-    success = execute_order_lifecycle(db, order, customer_token, steps_completed)
+    success = execute_order_lifecycle(db, order, customer_token, steps_completed=steps_completed)
     
     if not success:
         failed_step = db.query(OrderJourney).filter(
@@ -257,7 +257,7 @@ def retry_failed_order_with_token(order_id: str, admin: TokenData, db: Session):
 @router.post("/cancel")
 def cancel_order(
     body: dict,
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_oms_admin),
     db: Session = Depends(get_db)
 ):
     order_id = body.get("order_id")

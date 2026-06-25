@@ -11,7 +11,19 @@ class CustomerBasicInfo(BaseModel):
     role: str
     is_active: bool
     created_at: datetime
+    father_name: Optional[str] = None
+    dob: Optional[str] = None
+    gender: Optional[str] = None
+    alternate_mobile: Optional[str] = None
     address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pin_code: Optional[str] = None
+    country: Optional[str] = None
+    id_type: Optional[str] = None
+    id_number: Optional[str] = None
+    id_issue_date: Optional[str] = None
+    id_expiry_date: Optional[str] = None
     notes: Optional[str] = None
     profile_status: Optional[str] = "ACTIVE"
 
@@ -59,6 +71,18 @@ class CustomerUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     mobile: Optional[str] = None
+    father_name: Optional[str] = None
+    dob: Optional[str] = None
+    gender: Optional[str] = None
+    alternate_mobile: Optional[str] = None
     address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pin_code: Optional[str] = None
+    country: Optional[str] = None
+    id_type: Optional[str] = None
+    id_number: Optional[str] = None
+    id_issue_date: Optional[str] = None
+    id_expiry_date: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[str] = None

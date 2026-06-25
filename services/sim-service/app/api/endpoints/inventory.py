@@ -8,9 +8,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from app.api.deps import get_db, get_current_admin, TokenData
+from app.api.deps import get_db, get_current_inventory_admin, TokenData
 from app.models.sim_inventory import SimInventory
 from app.models.sim_assignment import SimAssignment
+from app.models.mobile_number_inventory import MobileNumberInventory
 from app.schemas.inventory import (
     InventoryOut, InventoryDashboard, InventoryUploadResponse,
     AssignmentCreate, AssignmentOut
@@ -30,7 +31,7 @@ def generate_msisdn(db: Session) -> str:
 
 @router.get("", response_model=InventoryDashboard)
 def inventory_dashboard(
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_inventory_admin),
     db: Session = Depends(get_db)
 ):
     """Get inventory status counts for the dashboard."""
@@ -51,7 +52,7 @@ def inventory_dashboard(
 @router.post("/upload", response_model=InventoryUploadResponse)
 async def upload_inventory(
     file: UploadFile = File(...),
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_inventory_admin),
     db: Session = Depends(get_db)
 ):
     """
@@ -122,6 +123,77 @@ async def upload_inventory(
     )
 
 
+@router.post("/numbers/upload", response_model=InventoryUploadResponse)
+async def upload_numbers(
+    file: UploadFile = File(...),
+    admin: TokenData = Depends(get_current_inventory_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Bulk upload mobile numbers via CSV file.
+    Expected CSV format: MSISDN,CIRCLE,OPERATOR,CATEGORY
+    """
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only CSV files are accepted"
+        )
+    
+    content = await file.read()
+    decoded = content.decode('utf-8')
+    reader = csv.reader(io.StringIO(decoded))
+    
+    uploaded = 0
+    duplicates = 0
+    errors = 0
+    
+    for row_num, row in enumerate(reader):
+        if row_num == 0 and row[0].upper().strip() in ('MSISDN', 'NUMBER'):
+            continue
+        
+        if len(row) < 4:
+            errors += 1
+            continue
+        
+        msisdn = row[0].strip()
+        circle = row[1].strip().upper()
+        operator = row[2].strip()
+        category = row[3].strip().capitalize() # Regular, Premium, VIP
+        
+        if not msisdn or not circle:
+            errors += 1
+            continue
+        
+        existing = db.query(MobileNumberInventory).filter(
+            MobileNumberInventory.msisdn == msisdn
+        ).first()
+        if existing:
+            duplicates += 1
+            continue
+        
+        db_item = MobileNumberInventory(
+            msisdn=msisdn,
+            circle=circle,
+            operator=operator,
+            category=category,
+            status="AVAILABLE"
+        )
+        db.add(db_item)
+        uploaded += 1
+    
+    db.commit()
+    
+    logger.info(
+        f"Number inventory bulk upload: {uploaded} uploaded, {duplicates} duplicates, {errors} errors",
+        extra={"event": "numbers_upload", "uploaded": uploaded, "duplicates": duplicates, "errors": errors}
+    )
+    
+    return InventoryUploadResponse(
+        uploaded=uploaded, duplicates=duplicates, errors=errors,
+        message=f"Successfully uploaded {uploaded} mobile numbers."
+    )
+
+
 @router.get("/search", response_model=List[InventoryOut])
 def search_inventory(
     iccid: Optional[str] = Query(None),
@@ -131,7 +203,7 @@ def search_inventory(
     circle: Optional[str] = Query(None),
     sim_type: Optional[str] = Query(None),
     limit: int = Query(100, le=500),
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_inventory_admin),
     db: Session = Depends(get_db)
 ):
     """Search inventory by ICCID, IMSI, MSISDN, status, circle, or sim_type."""
@@ -165,7 +237,7 @@ def search_inventory(
 @router.post("/assign", response_model=AssignmentOut, status_code=status.HTTP_201_CREATED)
 def assign_sim(
     assignment_in: AssignmentCreate,
-    admin: TokenData = Depends(get_current_admin),
+    admin: TokenData = Depends(get_current_inventory_admin),
     db: Session = Depends(get_db)
 ):
     """

@@ -29,6 +29,30 @@ const Dashboard: React.FC = () => {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
 
+  // Active SIMs state
+  const [sims, setSims] = useState<any[]>([]);
+  const [simsLoading, setSimsLoading] = useState(true);
+  const [simsError, setSimsError] = useState('');
+
+  const fetchSims = async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    try {
+      setSimsLoading(true);
+      setSimsError('');
+      const res = await fetch('/api/sims/assignments', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to load SIM assignments');
+      const data = await res.json();
+      setSims(data || []);
+    } catch (err: any) {
+      setSimsError('Could not load SIM cards');
+    } finally {
+      setSimsLoading(false);
+    }
+  };
+
   const fetchOrders = async () => {
     const token = localStorage.getItem('access_token');
     if (!token) return;
@@ -79,6 +103,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     fetchWallet();
     fetchOrders();
+    fetchSims();
   }, []);
 
   const handleTopUp = async () => {
@@ -241,8 +266,38 @@ const Dashboard: React.FC = () => {
                         <span className="text-xs font-headline font-black uppercase tracking-widest text-slate-400">Active SIMs</span>
                         <Radio className="w-6 h-6 text-brand-primary animate-pulse" />
                       </div>
-                      <h2 className="text-4xl font-headline font-black text-brand-primary mb-2">0</h2>
-                      <p className="text-xs font-sans font-semibold text-brand-text/75 leading-relaxed">No SIM cards linked to your account yet.</p>
+                      {simsLoading ? (
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-6 w-6 border-4 border-brand-primary border-t-brand-secondary animate-spin"></div>
+                          <span className="text-xs font-headline font-black uppercase text-slate-400">Loading...</span>
+                        </div>
+                      ) : simsError ? (
+                        <p className="text-xs font-headline font-black text-red-500 mb-2">{simsError}</p>
+                      ) : (
+                        <>
+                          <h2 className="text-4xl font-headline font-black text-brand-primary mb-2">
+                            {sims.length}
+                          </h2>
+                          {sims.length === 0 ? (
+                            <p className="text-xs font-sans font-semibold text-brand-text/75 leading-relaxed">No SIM cards linked to your account yet.</p>
+                          ) : (
+                            <div className="space-y-1.5 mt-2">
+                              {sims.map((sim: any) => (
+                                <div key={sim.id} className="flex justify-between items-center bg-brand-surface-low border-2 border-brand-primary/20 px-2 py-1">
+                                  <span className="text-xs font-mono font-black text-brand-primary">
+                                    +880 {sim.msisdn}
+                                  </span>
+                                  <span className={`text-[8px] font-headline font-black px-1.5 py-0.5 border border-brand-primary/30 uppercase ${
+                                    sim.assignment_status === 'ACTIVATED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                  }`}>
+                                    {sim.assignment_status}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                     <button 
                       onClick={() => setActiveTab('orders')}

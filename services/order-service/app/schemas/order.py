@@ -29,8 +29,25 @@ class OrderItemResponse(BaseModel):
 
 # ---- Order Schemas ----
 
+class CustomerKycInfo(BaseModel):
+    father_name: Optional[str] = None
+    dob: str
+    gender: str
+    alternate_mobile: str
+    address: str
+    city: str
+    state: str
+    pin_code: str
+    country: str
+    id_type: str
+    id_number: str
+    id_issue_date: Optional[str] = None
+    id_expiry_date: Optional[str] = None
+
 class OrderCreate(BaseModel):
     items: List[OrderItemCreate] = Field(..., min_length=1)
+    msisdn: Optional[str] = None
+    customer_info: Optional[CustomerKycInfo] = None
 
 
 class OrderResponse(BaseModel):
@@ -38,6 +55,7 @@ class OrderResponse(BaseModel):
     user_id: str
     status: OrderStatus
     total_amount: Decimal
+    msisdn: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     items: List[OrderItemResponse]

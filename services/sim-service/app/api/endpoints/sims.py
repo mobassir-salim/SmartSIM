@@ -76,6 +76,33 @@ def list_sims(
     return [enrich_sim_with_stock(s, db) for s in sims]
 
 
+@router.get("/assignments")
+def get_customer_assignments(
+    token_data: TokenData = Depends(get_current_user_role),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all active SIM assignments for the authenticated customer.
+    """
+    from app.models.sim_assignment import SimAssignment
+    customer_id = int(token_data.sub)
+    assignments = db.query(SimAssignment).filter(
+        SimAssignment.customer_id == customer_id
+    ).all()
+    
+    result = []
+    for a in assignments:
+        result.append({
+            "id": a.id,
+            "msisdn": a.msisdn,
+            "iccid": a.iccid,
+            "imsi": a.imsi,
+            "assignment_status": a.assignment_status,
+            "assigned_at": a.assigned_at
+        })
+    return result
+
+
 @router.get("/{sim_id}", response_model=SimOut)
 def get_sim(sim_id: int, db: Session = Depends(get_db)):
     """Get a single SIM with its current available_stock count (SIM Availability)."""

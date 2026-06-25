@@ -78,10 +78,23 @@ def get_current_admin(token: str = Depends(oauth2_scheme)) -> TokenData:
     except JWTError:
         raise credentials_exception
         
-    if token_data.role != "admin":
+    # Allow any admin/support role
+    allowed_admin_roles = ("admin", "super_admin", "support_agent", "operations_admin", "system_admin", "inventory_admin",
+                           "SUPER_ADMIN", "SUPPORT_AGENT", "OPERATIONS_ADMIN", "SYSTEM_ADMIN", "INVENTORY_ADMIN")
+    if token_data.role not in allowed_admin_roles:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user does not have enough privileges"
+        )
+    return token_data
+
+def get_current_crm_admin(token_data: TokenData = Depends(get_current_admin)) -> TokenData:
+    allowed_crm_roles = ("admin", "super_admin", "support_agent", "operations_admin",
+                         "SUPER_ADMIN", "SUPPORT_AGENT", "OPERATIONS_ADMIN")
+    if token_data.role not in allowed_crm_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access CRM resources"
         )
     return token_data
 

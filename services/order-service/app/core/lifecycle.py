@@ -3,6 +3,7 @@ import httpx
 import random
 import logging
 import time
+from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -14,11 +15,24 @@ from app.models.service_execution_log import ServiceExecutionLog
 
 logger = logging.getLogger("order-service")
 
-def execute_order_lifecycle(db: Session, order: Order, token: str, steps_completed: set = None) -> bool:
+def execute_order_lifecycle(
+    db: Session, 
+    order: Order, 
+    token: str, 
+    msisdn: str = None, 
+    customer_info: dict = None, 
+    steps_completed: set = None
+) -> bool:
     if steps_completed is None:
         steps_completed = set()
 
+    # Use order.msisdn if msisdn is not passed (e.g. during retry)
+    if not msisdn and order.msisdn:
+        msisdn = order.msisdn
+
     steps = [
+        ("Customer Validation", "auth-service"),
+        ("MSISDN Reserved", "sim-service"),
         ("Inventory Check", "order-service"),
         ("SIM Allocation", "sim-service"),
         ("Wallet Validation", "wallet-service"),
@@ -28,8 +42,10 @@ def execute_order_lifecycle(db: Session, order: Order, token: str, steps_complet
     ]
 
     step_api_mapping = {
+        "Customer Validation": "DB Customer Profile Update",
+        "MSISDN Reserved": "GET /api/numbers/verify-reservation",
         "Inventory Check": "GET /health (SIM/Plan)",
-        "SIM Allocation": "POST /api/sims/{id}/purchase",
+        "SIM Allocation": "POST /api/numbers/allocate",
         "Wallet Validation": "POST /api/wallet/debit",
         "Plan Assignment": "SQL Plan History Insert",
         "Activation Request": "HLR Activation Simulator",
@@ -54,7 +70,7 @@ def execute_order_lifecycle(db: Session, order: Order, token: str, steps_complet
             step_name=step_name,
             system_name=system_name,
             status="PENDING",
-            request_payload=json.dumps({"order_id": order.id, "user_id": user_id})
+            request_payload=json.dumps({"order_id": order.id, "user_id": user_id, "msisdn": msisdn})
         )
         db.add(journey_step)
         db.commit()
@@ -63,8 +79,97 @@ def execute_order_lifecycle(db: Session, order: Order, token: str, steps_complet
         start_time = time.perf_counter()
 
         try:
-            # ──── Step 1: Inventory Check ────
-            if step_name == "Inventory Check":
+            # ──── Step 1: Customer Validation (KYC) ────
+            if step_name == "Customer Validation":
+                # If customer_info is provided, save it directly to the customer_profile table
+                if customer_info:
+                    # Update users table (name)
+                    if customer_info.get("name"):
+                        db.execute(
+                            text("UPDATE users SET name = :name WHERE id = :user_id"),
+                            {"name": customer_info["name"], "user_id": int(user_id)}
+                        )
+                    
+                    # Check if customer_profile exists
+                    profile_exists = db.execute(
+                        text("SELECT 1 FROM customer_profile WHERE user_id = :user_id"),
+                        {"user_id": int(user_id)}
+                    ).fetchone()
+                    
+                    if not profile_exists:
+                        db.execute(
+                            text("INSERT INTO customer_profile (user_id, status) VALUES (:user_id, 'ACTIVE')"),
+                            {"user_id": int(user_id)}
+                        )
+                    
+                    # Update customer_profile table
+                    db.execute(
+                        text(
+                            "UPDATE customer_profile SET "
+                            "father_name = :father_name, dob = :dob, gender = :gender, "
+                            "alternate_mobile = :alternate_mobile, address = :address, "
+                            "city = :city, state = :state, pin_code = :pin_code, country = :country, "
+                            "id_type = :id_type, id_number = :id_number, "
+                            "id_issue_date = :id_issue_date, id_expiry_date = :id_expiry_date, "
+                            "updated_at = NOW() WHERE user_id = :user_id"
+                        ),
+                        {
+                            "user_id": int(user_id),
+                            "father_name": customer_info.get("father_name"),
+                            "dob": customer_info.get("dob"),
+                            "gender": customer_info.get("gender"),
+                            "alternate_mobile": customer_info.get("alternate_mobile"),
+                            "address": customer_info.get("address"),
+                            "city": customer_info.get("city"),
+                            "state": customer_info.get("state"),
+                            "pin_code": customer_info.get("pin_code"),
+                            "country": customer_info.get("country"),
+                            "id_type": customer_info.get("id_type"),
+                            "id_number": customer_info.get("id_number"),
+                            "id_issue_date": customer_info.get("id_issue_date"),
+                            "id_expiry_date": customer_info.get("id_expiry_date")
+                        }
+                    )
+                    db.commit()
+                
+                # Verify that profile details are complete in database
+                profile = db.execute(
+                    text(
+                        "SELECT dob, gender, alternate_mobile, address, id_type, id_number "
+                        "FROM customer_profile WHERE user_id = :user_id"
+                    ),
+                    {"user_id": int(user_id)}
+                ).fetchone()
+                
+                if not profile or not all([profile[0], profile[1], profile[2], profile[3], profile[4], profile[5]]):
+                    raise Exception("KYC details are incomplete in customer profile.")
+                    
+                journey_step.status = "SUCCESS"
+                journey_step.response_payload = json.dumps({"status": "validated", "profile": "complete"})
+
+            # ──── Step 2: MSISDN Reserved ────
+            elif step_name == "MSISDN Reserved":
+                if sim_items:
+                    if not msisdn:
+                        raise Exception("Preferred mobile number (MSISDN) selection is required.")
+                    
+                    # Verify number reservation status in sim-service
+                    url = f"{settings.SIM_SERVICE_URL}/api/numbers/verify-reservation"
+                    payload = {"msisdn": msisdn, "customer_id": int(user_id)}
+                    
+                    with httpx.Client(timeout=10.0) as client:
+                        res = client.post(url, json=payload, headers=headers)
+                        if res.status_code != 200:
+                            raise Exception(f"MSISDN reservation check failed: {res.json().get('detail', 'Unknown error')}")
+                            
+                    journey_step.status = "SUCCESS"
+                    journey_step.response_payload = json.dumps({"status": "reserved", "msisdn": msisdn})
+                else:
+                    journey_step.status = "SUCCESS"
+                    journey_step.response_payload = json.dumps({"status": "skipped (no SIM in order)"})
+
+            # ──── Step 3: Inventory Check ────
+            elif step_name == "Inventory Check":
                 # Check health of SIM & Plan services
                 with httpx.Client(timeout=5.0) as client:
                     client.get(f"{settings.SIM_SERVICE_URL}/health").raise_for_status()
@@ -72,22 +177,31 @@ def execute_order_lifecycle(db: Session, order: Order, token: str, steps_complet
                 journey_step.status = "SUCCESS"
                 journey_step.response_payload = json.dumps({"status": "healthy"})
 
-            # ──── Step 2: SIM Allocation ────
+            # ──── Step 4: SIM Allocation ────
             elif step_name == "SIM Allocation":
                 if sim_items:
                     for it in sim_items:
-                        # Call purchase/allocation endpoint in SIM Service
-                        url = f"{settings.SIM_SERVICE_URL}/api/sims/{it.item_id}/purchase"
+                        # Call allocate endpoint in SIM Service
+                        url = f"{settings.SIM_SERVICE_URL}/api/numbers/allocate"
+                        payload = {
+                            "msisdn": msisdn,
+                            "customer_id": int(user_id),
+                            "order_id": order.id,
+                            "sim_id": int(it.item_id)
+                        }
                         with httpx.Client(timeout=10.0) as client:
-                            res = client.post(url)
-                            res.raise_for_status()
+                            res = client.post(url, json=payload, headers=headers)
+                            if res.status_code != 200:
+                                raise Exception(f"SIM allocation failed: {res.json().get('detail', 'Unknown error')}")
+                            alloc_data = res.json()
+                            
                     journey_step.status = "SUCCESS"
-                    journey_step.response_payload = json.dumps({"allocation": "completed"})
+                    journey_step.response_payload = json.dumps({"allocation": "completed", "details": alloc_data})
                 else:
                     journey_step.status = "SUCCESS"
                     journey_step.response_payload = json.dumps({"allocation": "skipped (no SIM)"})
 
-            # ──── Step 3: Wallet Validation ────
+            # ──── Step 5: Wallet Validation ────
             elif step_name == "Wallet Validation":
                 url = f"{settings.WALLET_SERVICE_URL}/api/wallet/debit"
                 payload = {
@@ -103,12 +217,10 @@ def execute_order_lifecycle(db: Session, order: Order, token: str, steps_complet
                 journey_step.status = "SUCCESS"
                 journey_step.response_payload = json.dumps(res.json())
 
-            # ──── Step 4: Plan Assignment ────
+            # ──── Step 6: Plan Assignment ────
             elif step_name == "Plan Assignment":
                 if plan_items:
                     for it in plan_items:
-                        # Insert plan assignment record into auth-service's customer_plan_history table in shared DB
-                        # We use raw SQL because Plan service doesn't have assignment APIs currently
                         db.execute(
                             text(
                                 "INSERT INTO customer_plan_history (user_id, plan_id, plan_name, activated_at, status) "
@@ -122,29 +234,47 @@ def execute_order_lifecycle(db: Session, order: Order, token: str, steps_complet
                     journey_step.status = "SUCCESS"
                     journey_step.response_payload = json.dumps({"plan_assignment": "skipped (no plan)"})
 
-            # ──── Step 5: Activation Request ────
+            # ──── Step 7: Activation Request ────
             elif step_name == "Activation Request":
-                # Simulated telecom network gateway activation.
-                # Has a 20% random failure rate on the first try to demonstrate retry engine capabilities!
+                # Simulated telecom network gateway activation. 20% failure on first try
                 if random.random() < 0.20:
                     raise httpx.ConnectTimeout("Connection to Telecom HLR gateway timed out.")
                 
-                # Mock successful SIM activation in inventory table
+                # Active SIM and Number in inventory/assignment tables
                 if sim_items:
-                    # Update SIM statuses in sim_inventory to ACTIVATED
+                    # Update status of assignment to ACTIVATED
+                    db.execute(
+                        text("UPDATE sim_assignment SET assignment_status = 'ACTIVATED' WHERE order_id = :order_id"),
+                        {"order_id": order.id}
+                    )
+                    
+                    # Update status of SIM in inventory to ACTIVATED
                     db.execute(
                         text(
                             "UPDATE sim_inventory si "
                             "SET status = 'ACTIVATED' "
                             "FROM sim_assignment sa "
-                            "WHERE si.id = sa.inventory_id AND sa.customer_id = :user_id"
+                            "WHERE si.id = sa.inventory_id AND sa.order_id = :order_id"
                         ),
-                        {"user_id": int(user_id)}
+                        {"order_id": order.id}
                     )
+                    
+                    # Update status of MSISDN in mobile number inventory to ACTIVATED
+                    db.execute(
+                        text(
+                            "UPDATE mobile_number_inventory mni "
+                            "SET status = 'ACTIVATED' "
+                            "FROM sim_assignment sa "
+                            "WHERE mni.inventory_id = sa.inventory_id AND sa.order_id = :order_id"
+                        ),
+                        {"order_id": order.id}
+                    )
+                    db.commit()
+                    
                 journey_step.status = "SUCCESS"
                 journey_step.response_payload = json.dumps({"status": "activated", "hlr_response": "HLR_SUCCESS_200"})
 
-            # ──── Step 6: Notification ────
+            # ──── Step 8: Notification ────
             elif step_name == "Notification":
                 # Publish event to RabbitMQ
                 try:
