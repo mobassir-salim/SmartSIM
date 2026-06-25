@@ -236,7 +236,7 @@ services:
     container_name: smartsim_kibana_prod
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5601:5601"
+      - "5601:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     depends_on:
