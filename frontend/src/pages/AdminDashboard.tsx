@@ -8,13 +8,13 @@ import {
   TicketCheck, Activity, BarChart2, ScrollText, BookUser,
   Plus, Trash2, Edit, X, Check, AlertCircle, RefreshCw,
   PowerOff, Power, Search, Eye, Ban, CheckCircle2, Wallet,
-  ChevronRight, Server, Loader2, ExternalLink, FileText
+  ChevronRight, Server, Loader2, ExternalLink, FileText, Network
 } from 'lucide-react';
 
 type TabId =
   | 'overview' | 'customers' | 'sims' | 'sim-inventory' | 'plans'
   | 'wallets' | 'orders' | 'tickets' | 'health'
-  | 'monitoring' | 'logs' | 'audit' | 'admin-users';
+  | 'monitoring' | 'logs' | 'audit' | 'admin-users' | 'system-tracker';
 
 interface ServiceHealth { name: string; url: string; status: 'UP' | 'DOWN' | 'CHECKING'; }
 interface Ticket { id: string; customer_id: number; type: string; description: string; status: string; created_at: string; }
@@ -33,6 +33,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'logs',        label: 'Centralized Logs',    icon: ScrollText },
   { id: 'audit',       label: 'Audit Logs',          icon: FileText },
   { id: 'admin-users', label: 'Admin Users',         icon: BookUser },
+  { id: 'system-tracker', label: 'System Flow Tracker', icon: Network },
 ];
 
 const MetricCard = ({ label, value, sub, accent = false }: { label: string; value: string | number; sub?: string; accent?: boolean }) => (
@@ -182,6 +183,33 @@ const AdminDashboard: React.FC = () => {
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any>(null);
   const [orderJourneyModal, setOrderJourneyModal] = useState(false);
   const [retryLoading, setRetryLoading] = useState(false);
+
+  // System Flow Tracker state
+  const [trackerLogs, setTrackerLogs] = useState<any[]>([]);
+  const [trackerSearchOrderId, setTrackerSearchOrderId] = useState('');
+  const [trackerSearchCustomerId, setTrackerSearchCustomerId] = useState('');
+  const [trackerSearchMsisdn, setTrackerSearchMsisdn] = useState('');
+  const [trackerSearchServiceName, setTrackerSearchServiceName] = useState('');
+  const [trackerLoading, setTrackerLoading] = useState(false);
+
+  const fetchTrackerLogs = useCallback(async () => {
+    setTrackerLoading(true);
+    try {
+      const params: any = {};
+      if (trackerSearchOrderId) params.order_id = trackerSearchOrderId;
+      if (trackerSearchCustomerId) params.customer_id = trackerSearchCustomerId;
+      if (trackerSearchMsisdn) params.msisdn = trackerSearchMsisdn;
+      if (trackerSearchServiceName) params.service_name = trackerSearchServiceName;
+
+      const res = await api.get('/admin/orders/system-tracker', { params });
+      setTrackerLogs(res.data);
+    } catch (err: any) {
+      console.error(err);
+      notify(err.response?.data?.detail || 'Failed to fetch service execution logs.', true);
+    } finally {
+      setTrackerLoading(false);
+    }
+  }, [trackerSearchOrderId, trackerSearchCustomerId, trackerSearchMsisdn, trackerSearchServiceName]);
 
   const [serviceHealth, setServiceHealth] = useState<ServiceHealth[]>([
     { name: 'Auth Service',         url: '/auth/health',          status: 'CHECKING' },
@@ -389,7 +417,8 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     if (activeTab === 'health') checkHealth();
-  }, [activeTab]);
+    if (activeTab === 'system-tracker') fetchTrackerLogs();
+  }, [activeTab, fetchTrackerLogs]);
 
   const saveSim = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1186,6 +1215,159 @@ const AdminDashboard: React.FC = () => {
                       </div>
                     ))
                   }
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 4: System Flow Tracker */}
+            {activeTab === 'system-tracker' && (
+              <div className="border-4 border-brand-primary bg-white p-6 neo-brutal-shadow space-y-6">
+                <SectionHeader title="System Flow Tracker" 
+                  action={
+                    <div className="flex gap-2">
+                      <Btn variant="primary" onClick={fetchTrackerLogs} disabled={trackerLoading}>
+                        {trackerLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                        Refresh Logs
+                      </Btn>
+                    </div>
+                  } 
+                />
+                
+                {/* Search Filters */}
+                <div className="border-4 border-brand-primary p-4 bg-brand-surface-low grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[9px] font-headline font-black uppercase tracking-widest text-slate-500 mb-1">Order ID</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-brand-primary p-2 text-xs font-sans neo-brutal-shadow focus:outline-none"
+                      placeholder="e.g. ORD..."
+                      value={trackerSearchOrderId}
+                      onChange={(e) => setTrackerSearchOrderId(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-headline font-black uppercase tracking-widest text-slate-500 mb-1">Customer ID</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-brand-primary p-2 text-xs font-sans neo-brutal-shadow focus:outline-none"
+                      placeholder="e.g. 1"
+                      value={trackerSearchCustomerId}
+                      onChange={(e) => setTrackerSearchCustomerId(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-headline font-black uppercase tracking-widest text-slate-500 mb-1">MSISDN</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-brand-primary p-2 text-xs font-sans neo-brutal-shadow focus:outline-none"
+                      placeholder="e.g. 91..."
+                      value={trackerSearchMsisdn}
+                      onChange={(e) => setTrackerSearchMsisdn(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-headline font-black uppercase tracking-widest text-slate-500 mb-1">Service Name</label>
+                    <select
+                      className="w-full border-2 border-brand-primary p-2 text-xs font-sans neo-brutal-shadow focus:outline-none"
+                      value={trackerSearchServiceName}
+                      onChange={(e) => setTrackerSearchServiceName(e.target.value)}
+                    >
+                      <option value="">All Services</option>
+                      <option value="order-service">order-service</option>
+                      <option value="sim-service">sim-service</option>
+                      <option value="wallet-service">wallet-service</option>
+                      <option value="plan-service">plan-service</option>
+                      <option value="notification-service">notification-service</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 justify-end">
+                  <Btn variant="outline" size="sm" onClick={() => {
+                    setTrackerSearchOrderId('');
+                    setTrackerSearchCustomerId('');
+                    setTrackerSearchMsisdn('');
+                    setTrackerSearchServiceName('');
+                  }}>Clear Filters</Btn>
+                  <Btn variant="primary" size="sm" onClick={fetchTrackerLogs}>Search Logs</Btn>
+                </div>
+
+                {/* Log list */}
+                <div className="border-2 border-brand-primary divide-y-2 divide-brand-primary bg-white">
+                  <div className="p-3 bg-brand-primary-container flex items-center justify-between">
+                    <p className="font-headline font-black text-[10px] uppercase text-brand-primary">Service Execution Telemetry Logs</p>
+                    <p className="font-headline font-black text-[10px] uppercase text-brand-primary">{trackerLogs.length} Entries Found</p>
+                  </div>
+                  
+                  {trackerLogs.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <p className="font-headline font-black uppercase text-slate-400 text-xs">No service execution logs found matching criteria.</p>
+                      <p className="text-[10px] text-slate-400 font-sans mt-1">Make a purchase or trigger an order checkout to populate logs.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left font-sans text-xs">
+                        <thead>
+                          <tr className="bg-slate-50 border-b-2 border-brand-primary text-[10px] font-headline font-black uppercase text-slate-500">
+                            <th className="p-3">Log ID</th>
+                            <th className="p-3">Order ID</th>
+                            <th className="p-3">Service Name</th>
+                            <th className="p-3">API / Flow Name</th>
+                            <th className="p-3">Execution Latency</th>
+                            <th className="p-3">Status</th>
+                            <th className="p-3">Execution Time</th>
+                            <th className="p-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y-2 divide-brand-primary">
+                          {trackerLogs.map((log) => (
+                            <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="p-3 font-mono font-bold text-[10px] text-slate-500">#{log.id}</td>
+                              <td className="p-3 font-mono font-bold text-[10px] text-brand-secondary">
+                                <span className="underline cursor-pointer" onClick={() => {
+                                  setTrackerSearchOrderId(log.order_id);
+                                }}>{log.order_id}</span>
+                              </td>
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 border border-brand-primary bg-brand-surface-low text-[10px] font-mono font-bold">
+                                  {log.service_name}
+                                </span>
+                              </td>
+                              <td className="p-3 font-mono text-[10px]">{log.api_name}</td>
+                              <td className="p-3 font-mono font-bold">
+                                <span className={log.execution_time > 500 ? 'text-amber-600' : 'text-emerald-600'}>
+                                  {log.execution_time.toFixed(1)} ms
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 font-headline font-black text-[9px] uppercase border-2 ${
+                                  log.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-800 border-emerald-800' : 'bg-rose-100 text-rose-800 border-rose-800'
+                                }`}>
+                                  {log.status}
+                                </span>
+                              </td>
+                              <td className="p-3 text-[10px] text-slate-500 font-mono">
+                                {new Date(log.created_at).toLocaleString()}
+                              </td>
+                              <td className="p-3 text-right">
+                                <div className="flex justify-end gap-2">
+                                  <a 
+                                    href={`http://localhost:5601/app/discover#/?_g=(filters:!())&_a=(query:(language:kuery,query:'service_name%20:%20%22${log.service_name}%22%20AND%20order_id%20:%20%22${log.order_id}%22'))`}
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-headline font-black uppercase tracking-wider border-2 border-brand-primary bg-brand-primary-container text-brand-primary hover:bg-brand-primary hover:text-white transition-colors"
+                                  >
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                    View Logs
+                                  </a>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -8,6 +8,7 @@ from app.core.logging import setup_logging
 
 from app.models.order import Order, OrderItem
 from app.models.order_journey import OrderJourney
+from app.models.service_execution_log import ServiceExecutionLog
 
 # Auto-create tables
 Base.metadata.create_all(bind=engine)

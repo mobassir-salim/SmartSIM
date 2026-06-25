@@ -9,7 +9,9 @@ from app.core.database import get_db
 from app.api.deps import get_current_admin, TokenData
 from app.models.order import Order, OrderStatus
 from app.models.order_journey import OrderJourney
+from app.models.service_execution_log import ServiceExecutionLog
 from app.schemas.journey import JourneyStepOut, OrderAdminDetail
+from app.schemas.tracker import ServiceExecutionLogOut
 
 router = APIRouter()
 logger = logging.getLogger("order-service")
@@ -66,6 +68,46 @@ def list_failed_orders(
     db: Session = Depends(get_db)
 ):
     return list_all_orders(status="FAILED", admin=admin, db=db)
+
+
+# ─── System Flow Tracker Logs ─────────────────────────────────────────────────
+
+@router.get("/system-tracker", response_model=List[ServiceExecutionLogOut])
+def get_system_tracker_logs(
+    order_id: Optional[str] = Query(None),
+    customer_id: Optional[str] = Query(None),
+    msisdn: Optional[str] = Query(None),
+    service_name: Optional[str] = Query(None),
+    admin: TokenData = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    query = db.query(ServiceExecutionLog)
+    
+    if service_name:
+        query = query.filter(ServiceExecutionLog.service_name.ilike(f"%{service_name}%"))
+        
+    if msisdn:
+        res = db.execute(
+            text("SELECT order_id FROM sim_assignment WHERE msisdn = :msisdn"),
+            {"msisdn": msisdn}
+        ).first()
+        if res and res[0]:
+            query = query.filter(ServiceExecutionLog.order_id == res[0])
+        else:
+            return []
+            
+    if customer_id:
+        orders = db.query(Order.id).filter(Order.user_id == customer_id).all()
+        order_ids = [o[0] for o in orders]
+        if order_ids:
+            query = query.filter(ServiceExecutionLog.order_id.in_(order_ids))
+        else:
+            return []
+            
+    if order_id:
+        query = query.filter(ServiceExecutionLog.order_id == order_id)
+        
+    return query.order_by(ServiceExecutionLog.created_at.desc()).all()
 
 
 # ─── Get Single Order Details & Journey ───────────────────────────────────────
@@ -248,3 +290,4 @@ def cancel_order(
     
     logger.info(f"Order {order_id} cancelled by admin {admin.sub}", extra={"event": "order_cancelled", "order_id": order_id})
     return {"message": "Order cancelled successfully", "status": order.status}
+

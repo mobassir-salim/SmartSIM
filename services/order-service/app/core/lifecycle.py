@@ -2,6 +2,7 @@ import json
 import httpx
 import random
 import logging
+import time
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -9,6 +10,7 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.models.order import Order, OrderStatus, OrderItemType
 from app.models.order_journey import OrderJourney
+from app.models.service_execution_log import ServiceExecutionLog
 
 logger = logging.getLogger("order-service")
 
@@ -24,6 +26,15 @@ def execute_order_lifecycle(db: Session, order: Order, token: str, steps_complet
         ("Activation Request", "sim-service"),
         ("Notification", "notification-service"),
     ]
+
+    step_api_mapping = {
+        "Inventory Check": "GET /health (SIM/Plan)",
+        "SIM Allocation": "POST /api/sims/{id}/purchase",
+        "Wallet Validation": "POST /api/wallet/debit",
+        "Plan Assignment": "SQL Plan History Insert",
+        "Activation Request": "HLR Activation Simulator",
+        "Notification": "RabbitMQ Event Publish",
+    }
 
     headers = {"Authorization": f"Bearer {token}"}
     user_id = order.user_id
@@ -48,6 +59,8 @@ def execute_order_lifecycle(db: Session, order: Order, token: str, steps_complet
         db.add(journey_step)
         db.commit()
         db.refresh(journey_step)
+
+        start_time = time.perf_counter()
 
         try:
             # ──── Step 1: Inventory Check ────
@@ -144,11 +157,37 @@ def execute_order_lifecycle(db: Session, order: Order, token: str, steps_complet
 
             db.commit()
 
+            # Record success in service_execution_log
+            duration_ms = (time.perf_counter() - start_time) * 1000.0
+            exec_log = ServiceExecutionLog(
+                order_id=order.id,
+                service_name=system_name,
+                api_name=step_api_mapping.get(step_name, "Unknown API"),
+                execution_time=round(duration_ms, 2),
+                status="SUCCESS"
+            )
+            db.add(exec_log)
+            db.commit()
+
         except Exception as e:
+            duration_ms = (time.perf_counter() - start_time) * 1000.0
             journey_step.status = "FAILED"
             journey_step.error_message = str(e)
             order.status = OrderStatus.FAILED
             db.commit()
+
+            # Record failure in service_execution_log
+            exec_log = ServiceExecutionLog(
+                order_id=order.id,
+                service_name=system_name,
+                api_name=step_api_mapping.get(step_name, "Unknown API"),
+                execution_time=round(duration_ms, 2),
+                status="FAILED",
+                error_message=str(e)
+            )
+            db.add(exec_log)
+            db.commit()
+
             logger.error(f"Order checkout step '{step_name}' failed: {e}")
             return False
 
