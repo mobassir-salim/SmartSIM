@@ -237,13 +237,18 @@ def purchase_sim(sim_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SIM not found")
     if not sim.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="SIM is not currently active")
+    
+    # Support both case-sensitive AVAILABLE and legacy available status
     inventory_item = db.query(SimInventory).filter(
         SimInventory.sim_id == sim_id,
-        SimInventory.status == "available"
+        SimInventory.status.in_(["AVAILABLE", "available"])
     ).first()
+    
     if not inventory_item:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No available stock for this SIM")
-    inventory_item.status = "assigned"
+    
+    # Mark as RESERVED to follow Module 1 specs
+    inventory_item.status = "RESERVED"
     db.commit()
     logger.info("SIM purchased", extra={"event": "sim_purchase", "sim_id": sim_id})
     logger.info("SIM inventory updated", extra={"event": "inventory_updated", "sim_id": sim_id})
