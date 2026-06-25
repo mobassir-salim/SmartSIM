@@ -6,8 +6,8 @@ from app.api.api import api_router
 
 from app.core.logging import setup_logging
 
-# Import models so SQLAlchemy creates the tables on startup
 from app.models.order import Order, OrderItem
+from app.models.order_journey import OrderJourney
 
 # Auto-create tables
 Base.metadata.create_all(bind=engine)

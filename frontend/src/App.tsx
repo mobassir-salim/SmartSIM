@@ -154,6 +154,14 @@ function App() {
                 </AdminRoute>
               }
             />
+            <Route
+              path="/admin/crm"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
 
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" replace />} />

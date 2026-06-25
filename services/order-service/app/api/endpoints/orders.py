@@ -139,64 +139,24 @@ def create_order(
 
     logger.info("Order created successfully", extra={"event": "order_created", "order_id": db_order.id, "user_id": user_id})
 
-    try:
-        from app.core.rabbitmq import publish_event
-        publish_event("OrderCreated", {"user_id": user_id, "order_id": db_order.id, "total_amount": float(total_amount)})
-    except Exception:
-        pass
-
-    # 3. Call Wallet Service to debit user's wallet
-    wallet_debit_url = f"{settings.WALLET_SERVICE_URL}/api/wallet/debit"
-    headers = {"Authorization": f"Bearer {token}"}
-    payload = {
-        "amount": float(total_amount),
-        "description": f"Payment for Order {db_order.id[:8]}",
-        "reference_id": db_order.id,
-    }
-
-    try:
-        with httpx.Client(timeout=10.0) as client:
-            wallet_response = client.post(wallet_debit_url, json=payload, headers=headers)
-        
-        if wallet_response.status_code == 200:
-            db_order.status = OrderStatus.CONFIRMED
-            db.commit()
-            db.refresh(db_order)
-
-            try:
-                from app.core.rabbitmq import publish_event
-                publish_event("OrderCompleted", {"user_id": user_id, "order_id": db_order.id, "total_amount": float(total_amount)})
-            except Exception:
-                pass
-
-            return db_order
-        elif wallet_response.status_code == 402:
-            db_order.status = OrderStatus.FAILED
-            db.commit()
-            db.refresh(db_order)
-            logger.error("Checkout failed", extra={"event": "checkout_failure", "user_id": user_id, "error_details": "Insufficient wallet balance."})
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail=f"Insufficient wallet balance. Order total: {total_amount} BDT."
-            )
-        else:
-            db_order.status = OrderStatus.FAILED
-            db.commit()
-            db.refresh(db_order)
-            logger.error("Checkout failed", extra={"event": "checkout_failure", "user_id": user_id, "error_details": f"Payment failed: {wallet_response.text}"})
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Payment failed: {wallet_response.text}"
-            )
-    except httpx.HTTPError as exc:
-        db_order.status = OrderStatus.FAILED
-        db.commit()
-        db.refresh(db_order)
-        logger.error("Checkout failed", extra={"event": "checkout_failure", "user_id": user_id, "error_details": str(exc)})
+    # Run the journey lifecycle sequential steps
+    from app.core.lifecycle import execute_order_lifecycle
+    success = execute_order_lifecycle(db, db_order, token)
+    
+    if not success:
+        # Retrieve the failed journey step to raise the correct error details
+        from app.models.order_journey import OrderJourney
+        failed_step = db.query(OrderJourney).filter(
+            OrderJourney.order_id == db_order.id,
+            OrderJourney.status == "FAILED"
+        ).order_by(OrderJourney.id.desc()).first()
+        err_msg = failed_step.error_message if failed_step else "Checkout failed."
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Payment service unavailable. Order marked as FAILED. Details: {str(exc)}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Checkout step failed. Reason: {err_msg}"
         )
+
+    return db_order
 
 
 # -------------------------

@@ -40,3 +40,11 @@ def get_current_token_and_user(token: str = Depends(oauth2_scheme)) -> Tuple[str
 def get_current_user_role(token: str = Depends(oauth2_scheme)) -> TokenData:
     _, token_data = get_current_token_and_user(token)
     return token_data
+
+def get_current_admin(token_data: TokenData = Depends(get_current_user_role)) -> TokenData:
+    if token_data.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user does not have enough privileges"
+        )
+    return token_data

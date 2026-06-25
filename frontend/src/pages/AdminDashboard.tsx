@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import {
   ShieldAlert, LayoutDashboard, Users, Cpu, CreditCard, ShoppingBag,
@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 type TabId =
-  | 'overview' | 'customers' | 'sims' | 'plans'
+  | 'overview' | 'customers' | 'sims' | 'sim-inventory' | 'plans'
   | 'wallets' | 'orders' | 'tickets' | 'health'
   | 'monitoring' | 'logs' | 'audit' | 'admin-users';
 
@@ -23,6 +23,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'overview',    label: 'Dashboard',          icon: LayoutDashboard },
   { id: 'customers',   label: 'Customers',           icon: Users },
   { id: 'sims',        label: 'SIM Management',      icon: Cpu },
+  { id: 'sim-inventory', label: 'SIM Inventory', icon: Server },
   { id: 'plans',       label: 'Plan Management',     icon: CreditCard },
   { id: 'wallets',     label: 'Wallet Management',   icon: Wallet },
   { id: 'orders',      label: 'Order Management',    icon: ShoppingBag },
@@ -123,7 +124,15 @@ const AdminDashboard: React.FC = () => {
     if (user && user.role !== 'admin') navigate('/dashboard');
   }, [user, navigate]);
 
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const location = useLocation();
+  const getInitialTab = (): TabId => {
+    if (location.pathname.includes('/admin/crm')) return 'customers';
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab && TABS.some(t => t.id === tab)) return tab as TabId;
+    return 'overview';
+  };
+  const [activeTab, setActiveTab] = useState<TabId>(getInitialTab());
   const [error, setError]   = useState('');
   const [success, setSuccess] = useState('');
 
@@ -142,9 +151,37 @@ const AdminDashboard: React.FC = () => {
   const [ticketModal, setTicketModal] = useState<'add'|'view'|null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
+  // SIM Inventory Management state
+  const [inventoryStats, setInventoryStats] = useState<any>({ total: 0, available: 0, reserved: 0, activated: 0, blocked: 0, lost: 0 });
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [inventorySearchType, setInventorySearchType] = useState<'iccid'|'imsi'|'msisdn'|'status'>('iccid');
+  const [inventoryStatusFilter, setInventoryStatusFilter] = useState('');
+  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+
   const [simForm, setSimForm] = useState({ id: '', name: '', type: 'physical', price: '', description: '', iccid_prefix: '' });
   const [planForm, setPlanForm] = useState({ id: '', name: '', price: '', data_gb: '', validity_days: '', type: 'combo', voice_minutes: '', sms_count: '', description: '' });
   const [ticketForm, setTicketForm] = useState({ customer_id: '', type: 'SIM Activation Issue', description: '' });
+
+  // CRM Management state
+  const [customerSearchType, setCustomerSearchType] = useState<'general' | 'msisdn' | 'iccid' | 'imsi' | 'order_id' | 'email' | 'name'>('general');
+  const [selectedCrmProfile, setSelectedCrmProfile] = useState<any>(null);
+  const [crmModal, setCrmModal] = useState<'profile' | 'edit' | null>(null);
+  const [crmForm, setCrmForm] = useState<any>({
+    customer_id: 0,
+    name: '',
+    email: '',
+    mobile: '',
+    address: '',
+    notes: '',
+    status: 'ACTIVE'
+  });
+
+  // OMS & Journey state
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState<any>(null);
+  const [orderJourneyModal, setOrderJourneyModal] = useState(false);
+  const [retryLoading, setRetryLoading] = useState(false);
 
   const [serviceHealth, setServiceHealth] = useState<ServiceHealth[]>([
     { name: 'Auth Service',         url: '/auth/health',          status: 'CHECKING' },
@@ -167,7 +204,7 @@ const AdminDashboard: React.FC = () => {
         api.get('/sims?include_inactive=true'),
         api.get('/plans'),
         api.get('/auth/users'),
-        api.get('/orders?limit=200'),
+        api.get('/admin/orders'),
       ]);
       if (simsR.status   === 'fulfilled') setSims(simsR.value.data || []);
       if (plansR.status  === 'fulfilled') setPlans(plansR.value.data || []);
@@ -178,7 +215,158 @@ const AdminDashboard: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  const fetchInventoryStats = useCallback(async () => {
+    try {
+      const res = await api.get('/admin/inventory');
+      setInventoryStats(res.data);
+    } catch (e: any) {
+      console.error('Failed to fetch inventory stats:', e);
+    }
+  }, []);
+
+  const searchInventory = async () => {
+    try {
+      const params: any = { limit: 100 };
+      if (inventorySearch) {
+        params[inventorySearchType] = inventorySearch;
+      }
+      if (inventoryStatusFilter) {
+        params.status = inventoryStatusFilter;
+      }
+      const res = await api.get('/admin/inventory/search', { params });
+      setInventoryItems(res.data);
+    } catch (e: any) {
+      notify(e.response?.data?.detail || 'Search failed', true);
+    }
+  };
+
+  const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadLoading(true);
+    setUploadResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post('/admin/inventory/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setUploadResult(res.data);
+      notify(`Uploaded ${res.data.uploaded} SIM records successfully!`);
+      fetchInventoryStats();
+      searchInventory();
+    } catch (e: any) {
+      notify(e.response?.data?.detail || 'Upload failed', true);
+    } finally {
+      setUploadLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  const assignSim = async (inventoryId: number, customerId: number) => {
+    try {
+      await api.post('/admin/inventory/assign', {
+        inventory_id: inventoryId,
+        customer_id: customerId
+      });
+      notify('SIM assigned successfully!');
+      searchInventory();
+      fetchInventoryStats();
+    } catch (e: any) {
+      notify(e.response?.data?.detail || 'Assignment failed', true);
+    }
+  };
+
+  const searchCrmCustomers = async () => {
+    try {
+      const params: any = {};
+      if (customerSearch) {
+        if (customerSearchType === 'general') {
+          params.query = customerSearch;
+        } else {
+          params[customerSearchType] = customerSearch;
+        }
+      }
+      const res = await api.get('/admin/crm/search', { params });
+      setUsers(res.data);
+    } catch (e: any) {
+      notify(e.response?.data?.detail || 'CRM search failed', true);
+    }
+  };
+
+  const fetchCrmCustomerProfile = async (id: number) => {
+    try {
+      const res = await api.get(`/admin/crm/customer/${id}`);
+      setSelectedCrmProfile(res.data);
+      setCrmModal('profile');
+      
+      const info = res.data.basic_info;
+      setCrmForm({
+        customer_id: info.id,
+        name: info.name || '',
+        email: info.email || '',
+        mobile: info.mobile || '',
+        address: info.address || '',
+        notes: info.notes || '',
+        status: info.profile_status || 'ACTIVE'
+      });
+    } catch (e: any) {
+      notify(e.response?.data?.detail || 'Failed to fetch customer profile', true);
+    }
+  };
+
+  const updateCrmCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.put('/admin/crm/customer', crmForm);
+      notify('Customer CRM profile updated successfully!');
+      setCrmModal('profile'); // Go back to profile view
+      fetchCrmCustomerProfile(crmForm.customer_id);
+      searchCrmCustomers(); // Refresh list
+    } catch (e: any) {
+      notify(e.response?.data?.detail || 'Failed to update customer', true);
+    }
+  };
+
+  const fetchOrderJourneyDetails = async (orderId: string) => {
+    try {
+      const res = await api.get(`/admin/orders/${orderId}`);
+      setSelectedOrderDetails(res.data);
+      setOrderJourneyModal(true);
+    } catch (e: any) {
+      notify(e.response?.data?.detail || 'Failed to fetch order details', true);
+    }
+  };
+
+  const handleRetryOrder = async (orderId: string) => {
+    setRetryLoading(true);
+    try {
+      await api.post('/admin/orders/retry', { order_id: orderId });
+      notify('Order retried and completed successfully!');
+      fetchOrderJourneyDetails(orderId);
+      fetchAll();
+    } catch (e: any) {
+      notify(e.response?.data?.detail || 'Retry failed', true);
+      fetchOrderJourneyDetails(orderId);
+      fetchAll();
+    } finally {
+      setRetryLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    try {
+      await api.post('/admin/orders/cancel', { order_id: orderId });
+      notify('Order cancelled successfully!');
+      fetchOrderJourneyDetails(orderId);
+      fetchAll();
+    } catch (e: any) {
+      notify(e.response?.data?.detail || 'Failed to cancel order', true);
+    }
+  };
+
+  useEffect(() => { fetchAll(); fetchInventoryStats(); }, [fetchAll, fetchInventoryStats]);
 
   const checkHealth = useCallback(async () => {
     setServiceHealth(prev => prev.map(s => ({ ...s, status: 'CHECKING' as const })));
@@ -272,12 +460,6 @@ const AdminDashboard: React.FC = () => {
   const activeUsers  = users.filter((u:any) => u.is_active).length;
   const openTickets  = tickets.filter(t => t.status === 'Open').length;
 
-  const filteredCustomers = users.filter((u:any) =>
-    !customerSearch ||
-    u.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    u.email?.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    u.mobile?.includes(customerSearch)
-  );
   const filteredOrders = orders.filter((o:any) =>
     !orderSearch || o.id?.includes(orderSearch) || String(o.user_id)?.includes(orderSearch)
   );
@@ -398,18 +580,38 @@ const AdminDashboard: React.FC = () => {
             {/* MODULE 2: Customer Management */}
             {activeTab === 'customers' && (
               <div className="border-4 border-brand-primary bg-white p-6 neo-brutal-shadow space-y-4">
-                <SectionHeader title={`Customers (${filteredCustomers.length})`}
+                <SectionHeader title={`Customers (${users.length})`}
                   action={<Btn variant="outline" onClick={fetchAll}><RefreshCw className="w-3 h-3" />Refresh</Btn>} />
-                <div className="border-2 border-brand-primary flex items-center px-3 gap-2">
-                  <Search className="w-4 h-4 text-brand-primary shrink-0" />
-                  <input type="text" placeholder="Search by name, email, or mobile…" value={customerSearch}
+                <div className="flex flex-wrap gap-3">
+                  <select
+                    value={customerSearchType}
+                    onChange={(e: any) => setCustomerSearchType(e.target.value as any)}
+                    className="border-2 border-brand-primary py-1.5 px-3 text-xs font-headline font-bold uppercase bg-white"
+                  >
+                    <option value="general">General</option>
+                    <option value="name">Name</option>
+                    <option value="email">Email</option>
+                    <option value="msisdn">MSISDN</option>
+                    <option value="iccid">ICCID</option>
+                    <option value="imsi">IMSI</option>
+                    <option value="order_id">Order ID</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={customerSearch}
                     onChange={e => setCustomerSearch(e.target.value)}
-                    className="flex-1 py-2 font-headline font-semibold text-sm outline-none bg-transparent" />
+                    placeholder={`Search by ${customerSearchType.toUpperCase()}...`}
+                    className="border-2 border-brand-primary py-1.5 px-3 text-xs font-sans flex-1 min-w-[200px]"
+                    onKeyDown={e => e.key === 'Enter' && searchCrmCustomers()}
+                  />
+                  <Btn variant="primary" size="sm" onClick={searchCrmCustomers}>
+                    <Search className="w-3 h-3" /> Search
+                  </Btn>
                 </div>
                 <div className="border-2 border-brand-primary divide-y-2 divide-brand-primary">
-                  {filteredCustomers.length === 0
+                  {users.length === 0
                     ? <p className="p-8 text-center font-headline font-black uppercase text-slate-400">No customers found.</p>
-                    : filteredCustomers.map((u: any) => (
+                    : users.map((u: any) => (
                       <div key={u.id} className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2 mb-0.5">
@@ -421,7 +623,7 @@ const AdminDashboard: React.FC = () => {
                           <p className="text-[9px] text-slate-400 font-mono">ID: {u.id} · Joined: {u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}</p>
                         </div>
                         <div className="flex gap-2 shrink-0">
-                          <Btn variant="outline" size="sm"><Eye className="w-3 h-3" />Profile</Btn>
+                          <Btn variant="outline" size="sm" onClick={() => fetchCrmCustomerProfile(u.id)}><Eye className="w-3 h-3" />Profile</Btn>
                           {u.is_active
                             ? <Btn variant="danger"  size="sm"><Ban className="w-3 h-3" />Suspend</Btn>
                             : <Btn variant="success" size="sm"><CheckCircle2 className="w-3 h-3" />Activate</Btn>
@@ -478,6 +680,131 @@ const AdminDashboard: React.FC = () => {
                         </div>
                       </div>
                     ))}
+                </div>
+              </div>
+            )}
+
+            {/* MODULE: SIM Inventory Management */}
+            {activeTab === 'sim-inventory' && (
+              <div>
+                <SectionHeader title="SIM Inventory Management" action={
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer">
+                      <input type="file" accept=".csv" className="hidden" onChange={handleCSVUpload} disabled={uploadLoading} />
+                      <Btn variant="primary" size="md" disabled={uploadLoading}>
+                        {uploadLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                        {uploadLoading ? 'Uploading...' : 'Upload CSV'}
+                      </Btn>
+                    </label>
+                    <Btn variant="outline" size="md" onClick={() => { searchInventory(); fetchInventoryStats(); }}>
+                      <RefreshCw className="w-3 h-3" /> Refresh
+                    </Btn>
+                  </div>
+                } />
+
+                {/* Inventory Dashboard Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+                  <MetricCard label="Total SIMs" value={inventoryStats.total} />
+                  <MetricCard label="Available" value={inventoryStats.available} accent />
+                  <MetricCard label="Reserved" value={inventoryStats.reserved} />
+                  <MetricCard label="Activated" value={inventoryStats.activated} />
+                  <MetricCard label="Blocked" value={inventoryStats.blocked} />
+                  <MetricCard label="Lost" value={inventoryStats.lost} />
+                </div>
+
+                {/* Upload Result */}
+                {uploadResult && (
+                  <div className="border-4 border-brand-primary bg-brand-primary-container p-4 mb-6 neo-brutal-shadow-sm">
+                    <p className="font-headline font-black text-sm uppercase text-brand-primary">Upload Result</p>
+                    <p className="text-xs font-sans mt-1">✅ Uploaded: {uploadResult.uploaded} | ⚠️ Duplicates: {uploadResult.duplicates} | ❌ Errors: {uploadResult.errors}</p>
+                  </div>
+                )}
+
+                {/* CSV Format Info */}
+                <div className="border-2 border-dashed border-brand-primary bg-white p-4 mb-6">
+                  <p className="font-headline font-black text-xs uppercase text-brand-primary mb-1">CSV Format</p>
+                  <code className="text-xs font-mono text-slate-600">ICCID,IMSI,SIM_TYPE,CIRCLE</code>
+                  <p className="text-[10px] font-sans text-slate-400 mt-1">Example: 899100000000001,404450001001001,PREPAID,DELHI</p>
+                </div>
+
+                {/* Search Section */}
+                <div className="flex flex-wrap gap-3 mb-6">
+                  <select
+                    value={inventorySearchType}
+                    onChange={e => setInventorySearchType(e.target.value as any)}
+                    className="border-2 border-brand-primary py-1.5 px-3 text-xs font-headline font-bold uppercase bg-white"
+                  >
+                    <option value="iccid">ICCID</option>
+                    <option value="imsi">IMSI</option>
+                    <option value="msisdn">MSISDN</option>
+                    <option value="status">Status</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={inventorySearch}
+                    onChange={e => setInventorySearch(e.target.value)}
+                    placeholder={`Search by ${inventorySearchType.toUpperCase()}...`}
+                    className="border-2 border-brand-primary py-1.5 px-3 text-xs font-sans flex-1 min-w-[200px]"
+                    onKeyDown={e => e.key === 'Enter' && searchInventory()}
+                  />
+                  <select
+                    value={inventoryStatusFilter}
+                    onChange={e => setInventoryStatusFilter(e.target.value)}
+                    className="border-2 border-brand-primary py-1.5 px-3 text-xs font-headline font-bold uppercase bg-white"
+                  >
+                    <option value="">All Status</option>
+                    <option value="AVAILABLE">Available</option>
+                    <option value="RESERVED">Reserved</option>
+                    <option value="ACTIVATED">Activated</option>
+                    <option value="BLOCKED">Blocked</option>
+                    <option value="LOST">Lost</option>
+                  </select>
+                  <Btn variant="primary" size="sm" onClick={searchInventory}>
+                    <Search className="w-3 h-3" /> Search
+                  </Btn>
+                </div>
+
+                {/* Inventory Table */}
+                <div className="overflow-x-auto border-4 border-brand-primary neo-brutal-shadow">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-brand-primary text-white">
+                        <th className="p-3 text-left font-headline font-black uppercase">ID</th>
+                        <th className="p-3 text-left font-headline font-black uppercase">ICCID</th>
+                        <th className="p-3 text-left font-headline font-black uppercase">IMSI</th>
+                        <th className="p-3 text-left font-headline font-black uppercase">Type</th>
+                        <th className="p-3 text-left font-headline font-black uppercase">Circle</th>
+                        <th className="p-3 text-left font-headline font-black uppercase">Status</th>
+                        <th className="p-3 text-left font-headline font-black uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inventoryItems.length === 0 ? (
+                        <tr><td colSpan={7} className="p-6 text-center font-headline font-bold uppercase text-slate-400">No records found. Use search or upload CSV to populate.</td></tr>
+                      ) : (
+                        inventoryItems.map((item: any) => (
+                          <tr key={item.id} className="border-t-2 border-brand-primary hover:bg-brand-surface-low transition-colors">
+                            <td className="p-3 font-mono font-bold">{item.id}</td>
+                            <td className="p-3 font-mono">{item.iccid}</td>
+                            <td className="p-3 font-mono">{item.imsi || '—'}</td>
+                            <td className="p-3"><StatusBadge status={item.sim_type || 'N/A'} /></td>
+                            <td className="p-3 font-headline font-bold uppercase text-[10px]">{item.circle || '—'}</td>
+                            <td className="p-3"><StatusBadge status={item.status} /></td>
+                            <td className="p-3">
+                              {(item.status === 'AVAILABLE' || item.status === 'available') && (
+                                <Btn variant="success" size="sm" onClick={() => {
+                                  const custId = prompt('Enter Customer ID to assign this SIM:');
+                                  if (custId && !isNaN(Number(custId))) assignSim(item.id, Number(custId));
+                                }}>
+                                  <Check className="w-3 h-3" /> Assign
+                                </Btn>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
@@ -604,9 +931,19 @@ const AdminDashboard: React.FC = () => {
                           </div>
                         )}
                         <div className="flex gap-2">
-                          {o.status === 'FAILED'     && <Btn variant="warning" size="sm"><RefreshCw className="w-3 h-3" />Retry</Btn>}
-                          {o.status === 'CONFIRMED'  && <Btn variant="outline" size="sm">Refund</Btn>}
-                          <Btn variant="outline" size="sm"><Eye className="w-3 h-3" />Details</Btn>
+                          {o.status === 'FAILED' && (
+                            <Btn variant="warning" size="sm" onClick={() => handleRetryOrder(o.id)} disabled={retryLoading}>
+                              <RefreshCw className={`w-3 h-3 ${retryLoading ? 'animate-spin' : ''}`} /> Retry
+                            </Btn>
+                          )}
+                          {(o.status === 'PENDING' || o.status === 'FAILED') && (
+                            <Btn variant="danger" size="sm" onClick={() => handleCancelOrder(o.id)}>
+                              Cancel
+                            </Btn>
+                          )}
+                          <Btn variant="outline" size="sm" onClick={() => fetchOrderJourneyDetails(o.id)}>
+                            <Eye className="w-3 h-3" /> Journey Tracking
+                          </Btn>
                         </div>
                       </div>
                     ))}
@@ -983,6 +1320,344 @@ const AdminDashboard: React.FC = () => {
             )}
           </div>
         </Modal>
+      )}
+
+      {/* CRM Profile Details Modal */}
+      {crmModal === 'profile' && selectedCrmProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white border-4 border-brand-primary neo-brutal-shadow w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-5 border-b-4 border-brand-primary bg-brand-primary-container">
+              <div>
+                <h3 className="font-headline font-black uppercase text-lg text-brand-primary">
+                  Customer Profile: {selectedCrmProfile.basic_info.name}
+                </h3>
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5">ID: {selectedCrmProfile.basic_info.id} · Email: {selectedCrmProfile.basic_info.email}</p>
+              </div>
+              <button onClick={() => setCrmModal(null)} className="border-2 border-brand-primary p-1 hover:bg-white cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Profile Top Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="border-2 border-brand-primary p-3 bg-slate-50">
+                  <p className="text-[9px] font-headline font-black text-slate-400 uppercase">Profile Status</p>
+                  <p className="text-lg font-headline font-black text-brand-primary uppercase mt-1">
+                    {selectedCrmProfile.basic_info.profile_status}
+                  </p>
+                </div>
+                <div className="border-2 border-brand-primary p-3 bg-slate-50">
+                  <p className="text-[9px] font-headline font-black text-slate-400 uppercase">Mobile No</p>
+                  <p className="text-lg font-headline font-black text-brand-secondary mt-1">{selectedCrmProfile.basic_info.mobile}</p>
+                </div>
+                <div className="border-2 border-brand-primary p-3 bg-slate-50">
+                  <p className="text-[9px] font-headline font-black text-slate-400 uppercase">Wallet Balance</p>
+                  <p className="text-lg font-headline font-black text-brand-secondary mt-1">
+                    ৳{formatPrice(selectedCrmProfile.wallet_info?.balance || 0)}
+                  </p>
+                </div>
+                <div className="border-2 border-brand-primary p-3 bg-slate-50">
+                  <p className="text-[9px] font-headline font-black text-slate-400 uppercase">Total Orders</p>
+                  <p className="text-lg font-headline font-black text-brand-secondary mt-1">
+                    {selectedCrmProfile.order_info?.length || 0}
+                  </p>
+                </div>
+              </div>
+
+              {/* Grid sections for details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Basic Info & Edit */}
+                <div className="border-2 border-brand-primary p-4 space-y-3">
+                  <div className="flex justify-between items-center border-b border-brand-primary pb-2">
+                    <h4 className="font-headline font-black uppercase text-xs text-brand-primary">Basic Information</h4>
+                    <Btn variant="primary" size="sm" onClick={() => setCrmModal('edit')}>Edit Info</Btn>
+                  </div>
+                  <div className="text-xs space-y-2 font-sans">
+                    <p><strong>Name:</strong> {selectedCrmProfile.basic_info.name}</p>
+                    <p><strong>Email:</strong> {selectedCrmProfile.basic_info.email}</p>
+                    <p><strong>Mobile:</strong> {selectedCrmProfile.basic_info.mobile}</p>
+                    <p><strong>Address:</strong> {selectedCrmProfile.basic_info.address || '—'}</p>
+                    <p><strong>Notes:</strong> {selectedCrmProfile.basic_info.notes || '—'}</p>
+                    <p><strong>Registered:</strong> {new Date(selectedCrmProfile.basic_info.created_at).toLocaleString()}</p>
+                  </div>
+                </div>
+
+                {/* SIM Assignment Info */}
+                <div className="border-2 border-brand-primary p-4 space-y-3">
+                  <h4 className="font-headline font-black uppercase text-xs text-brand-primary border-b border-brand-primary pb-2">SIM Cards</h4>
+                  <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                    {selectedCrmProfile.sim_info.length === 0 ? (
+                      <p className="text-xs text-slate-400 font-sans p-2">No SIMs assigned to this customer.</p>
+                    ) : (
+                      selectedCrmProfile.sim_info.map((sim: any, idx: number) => (
+                        <div key={idx} className="py-2 text-xs font-sans space-y-1">
+                          <p><strong>MSISDN:</strong> <span className="font-mono">{sim.msisdn}</span></p>
+                          <p><strong>ICCID:</strong> <span className="font-mono">{sim.iccid}</span></p>
+                          <p><strong>IMSI:</strong> <span className="font-mono">{sim.imsi || '—'}</span></p>
+                          <p><strong>Status:</strong> <StatusBadge status={sim.status} /></p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Plan Information */}
+                <div className="border-2 border-brand-primary p-4 space-y-3">
+                  <h4 className="font-headline font-black uppercase text-xs text-brand-primary border-b border-brand-primary pb-2">Plan History</h4>
+                  <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                    {selectedCrmProfile.plan_info.length === 0 ? (
+                      <p className="text-xs text-slate-400 font-sans p-2">No plan history found.</p>
+                    ) : (
+                      selectedCrmProfile.plan_info.map((plan: any, idx: number) => (
+                        <div key={idx} className="py-2 text-xs font-sans flex justify-between items-center">
+                          <div>
+                            <p className="font-bold">{plan.plan_name}</p>
+                            <p className="text-[10px] text-slate-400 font-mono">Expires: {plan.expires_at ? new Date(plan.expires_at).toLocaleDateString() : 'Never'}</p>
+                          </div>
+                          <StatusBadge status={plan.status} />
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Wallet Transactions */}
+                <div className="border-2 border-brand-primary p-4 space-y-3">
+                  <h4 className="font-headline font-black uppercase text-xs text-brand-primary border-b border-brand-primary pb-2">Wallet Transactions</h4>
+                  <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                    {!selectedCrmProfile.wallet_info || selectedCrmProfile.wallet_info.transactions.length === 0 ? (
+                      <p className="text-xs text-slate-400 font-sans p-2">No transaction history.</p>
+                    ) : (
+                      selectedCrmProfile.wallet_info.transactions.map((tx: any, idx: number) => (
+                        <div key={idx} className="py-2 text-xs font-sans flex justify-between items-center">
+                          <div>
+                            <p className="font-bold">{tx.description || 'Transaction'}</p>
+                            <p className="text-[9px] text-slate-400 font-mono">{new Date(tx.created_at).toLocaleString()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-bold ${tx.transaction_type === 'CREDIT' ? 'text-green-600' : 'text-red-600'}`}>
+                              {tx.transaction_type === 'CREDIT' ? '+' : '-'}৳{formatPrice(tx.amount)}
+                            </p>
+                            <StatusBadge status={tx.status} />
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Order History Table */}
+              <div className="border-2 border-brand-primary p-4 space-y-3">
+                <h4 className="font-headline font-black uppercase text-xs text-brand-primary border-b border-brand-primary pb-2">Order History</h4>
+                <div className="overflow-x-auto max-h-60">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="border-b-2 border-brand-primary bg-slate-50 font-headline uppercase text-[10px]">
+                        <th className="p-2">Order ID</th>
+                        <th className="p-2">Items</th>
+                        <th className="p-2">Amount</th>
+                        <th className="p-2">Status</th>
+                        <th className="p-2">Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedCrmProfile.order_info.length === 0 ? (
+                        <tr><td colSpan={5} className="p-4 text-center font-bold text-slate-400 uppercase">No orders found.</td></tr>
+                      ) : (
+                        selectedCrmProfile.order_info.map((ord: any) => (
+                          <tr key={ord.id} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="p-2 font-mono font-bold">{ord.id.slice(0, 8)}</td>
+                            <td className="p-2 font-sans">
+                              {ord.items.map((it: any, idx: number) => (
+                                <div key={idx}>{it.item_name || `${it.item_type} #${it.item_id}`} x {it.quantity}</div>
+                              ))}
+                            </td>
+                            <td className="p-2 font-bold">৳{formatPrice(ord.total_amount)}</td>
+                            <td className="p-2"><StatusBadge status={ord.status} /></td>
+                            <td className="p-2 text-slate-400 font-mono text-[10px]">{new Date(ord.created_at).toLocaleString()}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CRM Edit Modal */}
+      {crmModal === 'edit' && (
+        <Modal title="Edit Customer Details" onClose={() => setCrmModal('profile')}>
+          <form onSubmit={updateCrmCustomer} className="space-y-4">
+            <InputField label="Name" type="text" required value={crmForm.name}
+              onChange={(e: any) => setCrmForm({ ...crmForm, name: e.target.value })} />
+            <InputField label="Email" type="email" required value={crmForm.email}
+              onChange={(e: any) => setCrmForm({ ...crmForm, email: e.target.value })} />
+            <InputField label="Mobile" type="text" required value={crmForm.mobile}
+              onChange={(e: any) => setCrmForm({ ...crmForm, mobile: e.target.value })} />
+            <InputField label="Address" type="text" value={crmForm.address}
+              onChange={(e: any) => setCrmForm({ ...crmForm, address: e.target.value })} />
+            <InputField label="Notes" type="textarea" value={crmForm.notes}
+              onChange={(e: any) => setCrmForm({ ...crmForm, notes: e.target.value })} />
+            <InputField label="Status" type="select" value={crmForm.status}
+              onChange={(e: any) => setCrmForm({ ...crmForm, status: e.target.value })}>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="SUSPENDED">SUSPENDED</option>
+            </InputField>
+            <Btn variant="primary" size="lg" className="w-full justify-center">
+              Save Profile Changes
+            </Btn>
+          </form>
+        </Modal>
+      )}
+
+      {/* Order Journey Visualizer Modal */}
+      {orderJourneyModal && selectedOrderDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white border-4 border-brand-primary neo-brutal-shadow w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-5 border-b-4 border-brand-primary bg-brand-primary-container">
+              <div>
+                <h3 className="font-headline font-black uppercase text-lg text-brand-primary">
+                  Order Journey Tracking: #{selectedOrderDetails.id.slice(0, 8)}
+                </h3>
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5">User ID: {selectedOrderDetails.user_id} · Total: ৳{formatPrice(selectedOrderDetails.total_amount)}</p>
+              </div>
+              <button onClick={() => setOrderJourneyModal(false)} className="border-2 border-brand-primary p-1 hover:bg-white cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Top status card */}
+              <div className="flex justify-between items-center border-2 border-brand-primary p-4 bg-slate-50">
+                <div>
+                  <p className="text-[9px] font-headline font-black text-slate-400 uppercase">Order Status</p>
+                  <p className="text-sm font-headline font-black text-brand-primary uppercase mt-0.5">
+                    {selectedOrderDetails.status}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {selectedOrderDetails.status === 'FAILED' && (
+                    <Btn variant="warning" size="md" onClick={() => handleRetryOrder(selectedOrderDetails.id)} disabled={retryLoading}>
+                      <RefreshCw className={`w-4 h-4 ${retryLoading ? 'animate-spin' : ''}`} /> Retry Failed Step
+                    </Btn>
+                  )}
+                  {(selectedOrderDetails.status === 'PENDING' || selectedOrderDetails.status === 'FAILED') && (
+                    <Btn variant="danger" size="md" onClick={() => handleCancelOrder(selectedOrderDetails.id)}>
+                      Cancel Order
+                    </Btn>
+                  )}
+                </div>
+              </div>
+
+              {/* Order Items Summary */}
+              <div className="border-2 border-brand-primary p-4 bg-brand-surface-low space-y-2">
+                <p className="font-headline font-black text-[10px] uppercase text-brand-primary border-b border-brand-primary/20 pb-1">Order Items</p>
+                <div className="text-xs space-y-1 font-mono">
+                  {selectedOrderDetails.items.map((it: any, idx: number) => (
+                    <div key={idx} className="flex justify-between">
+                      <span>{it.item_name} ({it.item_type}) x {it.quantity}</span>
+                      <span>৳{formatPrice(it.unit_price * it.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Step timeline list */}
+              <div className="space-y-4">
+                <p className="font-headline font-black text-xs uppercase text-brand-primary">Lifecycle Processing Steps</p>
+                
+                <div className="relative border-l-4 border-brand-primary ml-4 pl-6 space-y-6">
+                  {(() => {
+                    const steps = [
+                      { name: 'Inventory Check', sys: 'order-service' },
+                      { name: 'SIM Allocation', sys: 'sim-service' },
+                      { name: 'Wallet Validation', sys: 'wallet-service' },
+                      { name: 'Plan Assignment', sys: 'plan-service' },
+                      { name: 'Activation Request', sys: 'sim-service' },
+                      { name: 'Notification', sys: 'notification-service' }
+                    ];
+
+                    return steps.map((step, idx) => {
+                      const journeyLog = selectedOrderDetails.journey?.find((j: any) => j.step_name === step.name);
+                      
+                      let circleColor = 'bg-slate-200 border-slate-400';
+                      let statusText = 'Not Started';
+                      
+                      if (journeyLog) {
+                        if (journeyLog.status === 'SUCCESS') {
+                          circleColor = 'bg-green-500 border-green-700';
+                          statusText = 'Success';
+                        } else if (journeyLog.status === 'FAILED') {
+                          circleColor = 'bg-red-500 border-red-700';
+                          statusText = 'Failed';
+                        } else if (journeyLog.status === 'PENDING') {
+                          circleColor = 'bg-yellow-400 border-yellow-600 animate-pulse';
+                          statusText = 'Processing';
+                        }
+                      }
+
+                      return (
+                        <div key={idx} className="relative">
+                          {/* Dot marker */}
+                          <div className={`absolute -left-[34px] top-0.5 w-4 h-4 rounded-full border-2 ${circleColor}`} />
+                          
+                          <div className="border-2 border-brand-primary p-3 bg-white space-y-2">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <h4 className="font-headline font-black uppercase text-xs text-brand-primary">{step.name}</h4>
+                                <p className="text-[9px] text-slate-400 font-mono">System: {step.sys}</p>
+                              </div>
+                              <div className="text-right">
+                                <span className={`text-[8px] font-headline font-black border uppercase px-1.5 py-0.5 ${
+                                  statusText === 'Success' ? 'bg-green-100 text-green-700 border-green-500' :
+                                  statusText === 'Failed' ? 'bg-red-100 text-red-700 border-red-500' :
+                                  statusText === 'Processing' ? 'bg-yellow-100 text-yellow-700 border-yellow-500' :
+                                  'bg-slate-100 text-slate-500 border-slate-300'
+                                }`}>
+                                  {statusText}
+                                </span>
+                              </div>
+                            </div>
+
+                            {journeyLog?.error_message && (
+                              <div className="border border-red-300 bg-red-50 text-red-700 p-2 text-[10px] font-mono whitespace-pre-wrap">
+                                <strong>Error Details:</strong> {journeyLog.error_message}
+                              </div>
+                            )}
+
+                            {journeyLog?.response_payload && (
+                              <details className="text-[10px] font-mono cursor-pointer text-slate-500">
+                                <summary className="font-sans hover:text-brand-primary">View Payload details</summary>
+                                <pre className="bg-slate-50 p-2 mt-1 border border-slate-200 overflow-x-auto text-[9px]">
+                                  {(() => {
+                                    try {
+                                      return JSON.stringify(JSON.parse(journeyLog.response_payload), null, 2);
+                                    } catch {
+                                      return journeyLog.response_payload;
+                                    }
+                                  })()}
+                                </pre>
+                              </details>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

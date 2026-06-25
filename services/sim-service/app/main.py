@@ -9,6 +9,7 @@ from app.core.logging import setup_logging
 # Import all models here so SQLAlchemy detects them
 from app.models.sim import Sim
 from app.models.sim_inventory import SimInventory
+from app.models.sim_assignment import SimAssignment
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)

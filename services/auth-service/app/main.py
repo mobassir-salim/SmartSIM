@@ -11,6 +11,9 @@ from app.models.user import User
 from app.models.otp import OTPCode
 from app.models.role import Role
 from app.models.permission import Permission
+from app.models.customer_profile import CustomerProfile
+from app.models.customer_plan_history import CustomerPlanHistory
+from app.models.customer_activity import CustomerActivity
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
