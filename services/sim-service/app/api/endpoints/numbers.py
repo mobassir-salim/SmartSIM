@@ -219,12 +219,18 @@ def allocate_number_to_sim(payload: AllocationRequest, db: Session = Depends(get
     if not num_record:
         raise HTTPException(status_code=404, detail="Number not found")
         
-    # Check reservation
-    if num_record.status != "RESERVED" or num_record.reserved_by_customer_id != payload.customer_id:
-        raise HTTPException(status_code=400, detail="Number is not reserved by this customer")
-        
-    if num_record.reservation_expiry and num_record.reservation_expiry < now:
-        raise HTTPException(status_code=400, detail="Reservation has expired")
+    # Allow allocation if reserved by this customer (and not expired) OR if status is AVAILABLE
+    is_reserved_by_me = (
+        num_record.status == "RESERVED" and 
+        num_record.reserved_by_customer_id == payload.customer_id and
+        (not num_record.reservation_expiry or num_record.reservation_expiry >= now)
+    )
+    is_available = (num_record.status == "AVAILABLE")
+    
+    if not (is_reserved_by_me or is_available):
+        if num_record.status == "RESERVED" and num_record.reservation_expiry and num_record.reservation_expiry < now:
+            raise HTTPException(status_code=400, detail="Reservation has expired")
+        raise HTTPException(status_code=400, detail="Number is not reserved by this customer or is not available")
         
     # 2. Find available SIM in sim_inventory
     sim_item = db.query(SimInventory).filter(

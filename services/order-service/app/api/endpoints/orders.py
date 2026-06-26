@@ -74,7 +74,13 @@ def create_order(
                         detail=f"SIM with ID {item_id_str} does not exist."
                     )
                 response.raise_for_status()
-                sim_data = response.json()
+                try:
+                    sim_data = response.json()
+                except Exception:
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail=f"Invalid JSON response from SIM service: {response.text[:150]}"
+                    )
                 price = Decimal(str(sim_data["price"]))
                 name = sim_data["name"]
             except httpx.HTTPError as exc:
@@ -94,7 +100,13 @@ def create_order(
                         detail=f"Plan with ID {item_id_str} does not exist."
                     )
                 response.raise_for_status()
-                plan_data = response.json()
+                try:
+                    plan_data = response.json()
+                except Exception:
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail=f"Invalid JSON response from Plan service: {response.text[:150]}"
+                    )
                 price = Decimal(str(plan_data["price"]))
                 name = plan_data["name"]
             except httpx.HTTPError as exc:

@@ -160,7 +160,11 @@ def execute_order_lifecycle(
                     with httpx.Client(timeout=10.0) as client:
                         res = client.post(url, json=payload, headers=headers)
                         if res.status_code != 200:
-                            raise Exception(f"MSISDN reservation check failed: {res.json().get('detail', 'Unknown error')}")
+                            try:
+                                err_detail = res.json().get('detail', 'Unknown error')
+                            except Exception:
+                                err_detail = f"HTTP {res.status_code}: {res.text[:150]}"
+                            raise Exception(f"MSISDN reservation check failed: {err_detail}")
                             
                     journey_step.status = "SUCCESS"
                     journey_step.response_payload = json.dumps({"status": "reserved", "msisdn": msisdn})
@@ -192,8 +196,15 @@ def execute_order_lifecycle(
                         with httpx.Client(timeout=10.0) as client:
                             res = client.post(url, json=payload, headers=headers)
                             if res.status_code != 200:
-                                raise Exception(f"SIM allocation failed: {res.json().get('detail', 'Unknown error')}")
-                            alloc_data = res.json()
+                                try:
+                                    err_detail = res.json().get('detail', 'Unknown error')
+                                except Exception:
+                                    err_detail = f"HTTP {res.status_code}: {res.text[:150]}"
+                                raise Exception(f"SIM allocation failed: {err_detail}")
+                            try:
+                                alloc_data = res.json()
+                            except Exception:
+                                raise Exception("SIM allocation succeeded but returned invalid JSON data.")
                             
                     journey_step.status = "SUCCESS"
                     journey_step.response_payload = json.dumps({"allocation": "completed", "details": alloc_data})
@@ -213,9 +224,18 @@ def execute_order_lifecycle(
                     res = client.post(url, json=payload, headers=headers)
                     if res.status_code == 402:
                         raise Exception("Insufficient wallet balance.")
-                    res.raise_for_status()
+                    if res.status_code != 200:
+                        try:
+                            err_detail = res.json().get('detail', 'Unknown error')
+                        except Exception:
+                            err_detail = f"HTTP {res.status_code}: {res.text[:150]}"
+                        raise Exception(f"Wallet validation failed: {err_detail}")
+                try:
+                    res_json = res.json()
+                except Exception:
+                    res_json = {"message": "Success", "raw_response": res.text[:200]}
                 journey_step.status = "SUCCESS"
-                journey_step.response_payload = json.dumps(res.json())
+                journey_step.response_payload = json.dumps(res_json)
 
             # ──── Step 6: Plan Assignment ────
             elif step_name == "Plan Assignment":

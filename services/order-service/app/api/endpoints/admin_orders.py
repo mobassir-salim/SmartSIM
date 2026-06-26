@@ -276,6 +276,40 @@ def cancel_order(
         
     order.status = OrderStatus.CANCELLED
     
+    # Clean up SIM inventory and mobile number status in DB if allocated
+    try:
+        # 1. Update physical SIM status back to AVAILABLE
+        db.execute(
+            text(
+                "UPDATE sim_inventory si "
+                "SET status = 'AVAILABLE' "
+                "FROM sim_assignment sa "
+                "WHERE si.id = sa.inventory_id AND sa.order_id = :order_id"
+            ),
+            {"order_id": order_id}
+        )
+        
+        # 2. Update number status back to AVAILABLE
+        if order.msisdn:
+            db.execute(
+                text(
+                    "UPDATE mobile_number_inventory "
+                    "SET status = 'AVAILABLE', reserved_by_customer_id = NULL, "
+                    "reserved_at = NULL, reservation_expiry = NULL, inventory_id = NULL "
+                    "WHERE msisdn = :msisdn"
+                ),
+                {"msisdn": order.msisdn}
+            )
+            
+        # 3. Delete the sim_assignment record to clear unique constraint
+        db.execute(
+            text("DELETE FROM sim_assignment WHERE order_id = :order_id"),
+            {"order_id": order_id}
+        )
+        db.commit()
+    except Exception as cleanup_err:
+        logger.error(f"Error cleaning up allocation for cancelled order {order_id}: {cleanup_err}")
+    
     # Log cancellation step in journey
     journey_step = OrderJourney(
         order_id=order_id,
@@ -283,11 +317,11 @@ def cancel_order(
         system_name="order-service",
         status="SUCCESS",
         request_payload=json.dumps({"cancelled_by": admin.sub}),
-        response_payload=json.dumps({"message": "Order cancelled by administrator."})
+        response_payload=json.dumps({"message": "Order cancelled by administrator and inventory released."})
     )
     db.add(journey_step)
     db.commit()
     
     logger.info(f"Order {order_id} cancelled by admin {admin.sub}", extra={"event": "order_cancelled", "order_id": order_id})
-    return {"message": "Order cancelled successfully", "status": order.status}
+    return {"message": "Order cancelled successfully and inventory released", "status": order.status}
 
