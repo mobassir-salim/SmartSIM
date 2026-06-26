@@ -3,12 +3,12 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { 
   User as UserIcon, CreditCard, ShoppingBag, Radio, Plus, X, 
-  ArrowDownLeft, ArrowUpRight, LayoutDashboard
+  ArrowDownLeft, ArrowUpRight, LayoutDashboard, LifeBuoy
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'wallet' | 'orders' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'wallet' | 'orders' | 'profile' | 'tickets'>('overview');
 
   // Wallet state
   const [wallet, setWallet] = useState<any>(null);
@@ -28,6 +28,71 @@ const Dashboard: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
+
+  // Support Tickets state
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [ticketsError, setTicketsError] = useState('');
+  
+  // Raise ticket form state
+  const [showRaiseTicket, setShowRaiseTicket] = useState(false);
+  const [newTicketType, setNewTicketType] = useState('SIM Activation Issue');
+  const [newTicketDesc, setNewTicketDesc] = useState('');
+  const [raiseTicketMsg, setRaiseTicketMsg] = useState('');
+  const [raiseTicketLoading, setRaiseTicketLoading] = useState(false);
+
+  const fetchTickets = async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    try {
+      setTicketsLoading(true);
+      setTicketsError('');
+      const res = await fetch('/api/tickets', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to load tickets');
+      const data = await res.json();
+      setTickets(data || []);
+    } catch (err: any) {
+      setTicketsError('Could not load support tickets');
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
+
+  const handleRaiseTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    if (!newTicketDesc.trim()) { setRaiseTicketMsg('Please enter a description'); return; }
+    try {
+      setRaiseTicketLoading(true);
+      setRaiseTicketMsg('');
+      const res = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: newTicketType,
+          description: newTicketDesc
+        })
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Failed to raise ticket');
+      }
+      setNewTicketDesc('');
+      setRaiseTicketMsg('✅ Support ticket raised successfully!');
+      await fetchTickets();
+      setTimeout(() => { setShowRaiseTicket(false); setRaiseTicketMsg(''); }, 2000);
+    } catch (err: any) {
+      setRaiseTicketMsg(`❌ ${err.message || 'Error raising ticket'}`);
+    } finally {
+      setRaiseTicketLoading(false);
+    }
+  };
 
   // Active SIMs state
   const [sims, setSims] = useState<any[]>([]);
@@ -104,6 +169,7 @@ const Dashboard: React.FC = () => {
     fetchWallet();
     fetchOrders();
     fetchSims();
+    fetchTickets();
   }, []);
 
   const handleTopUp = async () => {
@@ -212,6 +278,17 @@ const Dashboard: React.FC = () => {
               <UserIcon className="w-5 h-5" />
               <span>Profile Details</span>
             </button>
+            <button
+              onClick={() => setActiveTab('tickets')}
+              className={`w-full text-left p-4 border-4 border-brand-primary transition-all cursor-pointer flex items-center gap-3 ${
+                activeTab === 'tickets'
+                  ? 'bg-brand-primary-container text-brand-primary neo-brutal-shadow-sm translate-x-1 translate-y-1'
+                  : 'bg-white hover:bg-brand-surface-low'
+              }`}
+            >
+              <LifeBuoy className="w-5 h-5" />
+              <span>Support Tickets</span>
+            </button>
           </div>
 
           {/* Tab Content Display Area */}
@@ -240,7 +317,7 @@ const Dashboard: React.FC = () => {
                       ) : (
                         <>
                           <h2 className="text-4xl font-headline font-black text-brand-primary mb-1">
-                            {parseFloat(wallet?.balance || 0).toFixed(2)} BDT
+                            {parseFloat(wallet?.balance || 0).toFixed(2)} INR
                           </h2>
                           <p className="text-[10px] font-headline font-black uppercase text-slate-400 tracking-widest mb-2">
                             Available Balance
@@ -339,7 +416,7 @@ const Dashboard: React.FC = () => {
                           </div>
                           <div className="text-right">
                             <p className={`font-headline font-black text-sm ${tx.transaction_type === 'CREDIT' ? 'text-green-600' : 'text-red-500'}`}>
-                              {tx.transaction_type === 'CREDIT' ? '+' : '-'}{parseFloat(tx.amount).toFixed(2)} BDT
+                              {tx.transaction_type === 'CREDIT' ? '+' : '-'}{parseFloat(tx.amount).toFixed(2)} INR
                             </p>
                           </div>
                         </div>
@@ -358,7 +435,7 @@ const Dashboard: React.FC = () => {
                   <div>
                     <span className="text-xs font-headline font-black uppercase tracking-widest text-slate-400 block mb-1">Total Wallet Funds</span>
                     <h2 className="text-5xl font-headline font-black text-brand-primary">
-                      {parseFloat(wallet?.balance || 0).toFixed(2)} BDT
+                      {parseFloat(wallet?.balance || 0).toFixed(2)} INR
                     </h2>
                   </div>
                   <button
@@ -399,7 +476,7 @@ const Dashboard: React.FC = () => {
                           </div>
                           <div className="text-right">
                             <p className={`font-headline font-black text-base ${tx.transaction_type === 'CREDIT' ? 'text-green-600' : 'text-red-500'}`}>
-                              {tx.transaction_type === 'CREDIT' ? '+' : '-'}{parseFloat(tx.amount).toFixed(2)} BDT
+                              {tx.transaction_type === 'CREDIT' ? '+' : '-'}{parseFloat(tx.amount).toFixed(2)} INR
                             </p>
                             <span className="text-[9px] font-headline font-black uppercase tracking-wider text-slate-400 block mt-0.5">
                               Status: {tx.status}
@@ -439,7 +516,7 @@ const Dashboard: React.FC = () => {
                             <p className="text-xs text-slate-400 mt-1">{new Date(order.created_at).toLocaleString()}</p>
                           </div>
                           <div className="sm:text-right">
-                            <p className="font-headline font-black text-lg text-brand-primary">{parseFloat(order.total_amount).toFixed(2)} BDT</p>
+                            <p className="font-headline font-black text-lg text-brand-primary">{parseFloat(order.total_amount).toFixed(2)} INR</p>
                             <span className={`inline-block text-[9px] font-headline font-black px-2 py-0.5 border-2 border-brand-primary uppercase tracking-wider mt-1 ${
                               order.status === 'CONFIRMED' ? 'bg-green-500 text-white' :
                               order.status === 'FAILED' ? 'bg-red-500 text-white' :
@@ -458,7 +535,7 @@ const Dashboard: React.FC = () => {
                                 <span className="font-sans font-semibold text-brand-text uppercase">{item.item_name || `${item.item_type} ID: ${item.item_id}`}</span>
                                 <span className="text-xs text-slate-400 ml-2">x {item.quantity}</span>
                               </div>
-                              <span className="font-mono text-slate-500 font-semibold">{parseFloat(item.unit_price).toFixed(2)} BDT</span>
+                              <span className="font-mono text-slate-500 font-semibold">{parseFloat(item.unit_price).toFixed(2)} INR</span>
                             </div>
                           ))}
                         </div>
@@ -508,6 +585,66 @@ const Dashboard: React.FC = () => {
               </div>
             )}
 
+            {/* TICKETS TAB */}
+            {activeTab === 'tickets' && (
+              <div className="bg-white border-4 border-brand-primary p-6 neo-brutal-shadow rounded-none space-y-6">
+                <div className="flex justify-between items-center border-b-4 border-brand-primary pb-4">
+                  <h3 className="font-headline font-black uppercase text-lg text-brand-primary">Support Tickets</h3>
+                  <button
+                    onClick={() => setShowRaiseTicket(true)}
+                    className="flex items-center gap-2 bg-brand-secondary text-white border-4 border-brand-primary font-headline font-black py-2 px-4 rounded-none neo-brutal-shadow-xs hover:bg-brand-secondary/90 transition-all text-xs cursor-pointer animate-pulse-slow"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Raise New Ticket
+                  </button>
+                </div>
+
+                {ticketsLoading ? (
+                  <div className="py-12 text-center">
+                    <div className="h-10 w-10 border-4 border-brand-primary border-t-brand-secondary animate-spin mx-auto mb-4"></div>
+                    <p className="font-headline font-black text-xs uppercase">Loading support tickets...</p>
+                  </div>
+                ) : ticketsError ? (
+                  <p className="text-sm font-headline font-black text-red-500">{ticketsError}</p>
+                ) : tickets.length === 0 ? (
+                  <div className="border-4 border-brand-primary bg-brand-surface-low border-dashed p-10 text-center text-sm font-headline font-black uppercase text-slate-500">
+                    No support tickets raised yet.
+                  </div>
+                ) : (
+                  <div className="divide-y-4 divide-brand-primary border-4 border-brand-primary bg-white">
+                    {tickets.map((ticket: any) => (
+                      <div key={ticket.id} className="p-5 hover:bg-brand-surface-low transition-colors">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
+                          <div>
+                            <span className="text-[10px] font-headline font-black uppercase text-slate-400 block tracking-wider leading-none mb-1">
+                              Ticket ID: #{ticket.id}
+                            </span>
+                            <h4 className="font-headline font-black uppercase text-brand-primary text-base">{ticket.type}</h4>
+                          </div>
+                          <div>
+                            <span className={`inline-block text-[9px] font-headline font-black px-2 py-0.5 border-2 border-brand-primary uppercase tracking-wider ${
+                              ticket.status === 'Resolved' ? 'bg-green-500 text-white border-green-700' :
+                              ticket.status === 'In Progress' ? 'bg-yellow-400 text-brand-text border-yellow-500' :
+                              'bg-blue-500 text-white border-blue-700'
+                            }`}>
+                              {ticket.status}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="font-sans text-xs text-brand-text/90 leading-relaxed bg-slate-50 p-3 border-2 border-brand-primary/10">
+                          {ticket.description}
+                        </p>
+                        <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 mt-3 pt-3 border-t border-brand-primary/10">
+                          <span>Created: {new Date(ticket.created_at).toLocaleString()}</span>
+                          <span>Last Updated: {new Date(ticket.updated_at).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
 
         </div>
@@ -525,7 +662,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="mb-2">
-              <label className="text-[10px] font-headline font-black uppercase tracking-widest text-slate-400 block mb-1">Amount (BDT)</label>
+              <label className="text-[10px] font-headline font-black uppercase tracking-widest text-slate-400 block mb-1">Amount (INR)</label>
               <input
                 type="number"
                 min="1"
@@ -559,6 +696,61 @@ const Dashboard: React.FC = () => {
             >
               {topUpLoading ? 'Processing...' : 'Confirm Top Up'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Raise Support Ticket Modal */}
+      {showRaiseTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white border-4 border-brand-primary neo-brutal-shadow w-full max-w-md mx-4 p-6">
+            <div className="flex justify-between items-center mb-6 border-b-2 border-brand-primary pb-3">
+              <h3 className="font-headline font-black uppercase text-lg text-brand-primary">Raise Support Ticket</h3>
+              <button onClick={() => { setShowRaiseTicket(false); setRaiseTicketMsg(''); }} className="border-2 border-brand-primary p-1 hover:bg-brand-primary-container transition-colors cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRaiseTicket} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-headline font-black uppercase tracking-widest text-slate-400 block mb-1">Issue Category *</label>
+                <select
+                  value={newTicketType}
+                  onChange={(e) => setNewTicketType(e.target.value)}
+                  className="w-full border-4 border-brand-primary p-3 font-headline font-black text-sm uppercase focus:outline-none focus:bg-brand-primary-container transition-colors bg-white"
+                >
+                  <option value="SIM Activation Issue">SIM Activation Issue</option>
+                  <option value="Network Coverage">Network Coverage</option>
+                  <option value="Billing / Payment Issue">Billing / Payment Issue</option>
+                  <option value="KYC Rejection">KYC Rejection</option>
+                  <option value="Other Support Query">Other Support Query</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-headline font-black uppercase tracking-widest text-slate-400 block mb-1">Issue Description *</label>
+                <textarea
+                  rows={4}
+                  required
+                  value={newTicketDesc}
+                  onChange={(e) => setNewTicketDesc(e.target.value)}
+                  placeholder="Describe your issue in detail..."
+                  className="w-full border-4 border-brand-primary p-3 font-sans text-xs focus:outline-none focus:bg-brand-primary-container transition-colors"
+                />
+              </div>
+
+              {raiseTicketMsg && (
+                <p className="text-xs font-headline font-black text-center">{raiseTicketMsg}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={raiseTicketLoading}
+                className="w-full bg-brand-primary text-white border-4 border-brand-primary font-headline font-black py-3 uppercase tracking-widest neo-brutal-shadow-sm hover:bg-brand-primary/90 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {raiseTicketLoading ? 'Submitting...' : 'Submit Support Ticket'}
+              </button>
+            </form>
           </div>
         </div>
       )}

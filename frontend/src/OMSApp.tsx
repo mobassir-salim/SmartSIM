@@ -354,7 +354,7 @@ const OMSMainApp: React.FC = () => {
                           <td className="p-3 font-mono font-bold text-slate-400">{o.id}</td>
                           <td className="p-3 font-mono">#{o.user_id}</td>
                           <td className="p-3 font-mono font-bold text-brand-secondary">{o.msisdn || '—'}</td>
-                          <td className="p-3 font-bold">{o.total_amount} BDT</td>
+                          <td className="p-3 font-bold">{o.total_amount} INR</td>
                           <td className="p-3"><StatusBadge status={o.status} /></td>
                           <td className="p-3">
                             <Btn variant="outline" size="sm" onClick={() => fetchOrderJourneyDetails(o.id)}>

@@ -162,11 +162,11 @@ const KYCForm: React.FC = () => {
         <div className="mb-8 p-5 border-4 border-brand-primary bg-white neo-brutal-shadow flex justify-between items-center">
           <div className="font-headline font-black text-sm uppercase">
             <span className="text-slate-400 block text-[10px]">Reserved Number</span>
-            <span className="text-brand-primary text-lg">+880 {reservedMsisdn}</span>
+            <span className="text-brand-primary text-lg">+91 {reservedMsisdn}</span>
           </div>
           <div className="font-headline font-black text-sm uppercase text-right">
             <span className="text-slate-400 block text-[10px]">Order Total</span>
-            <span className="text-brand-primary text-xl">{cartTotal.toFixed(2)} BDT</span>
+            <span className="text-brand-primary text-xl">{cartTotal.toFixed(2)} INR</span>
           </div>
         </div>
 

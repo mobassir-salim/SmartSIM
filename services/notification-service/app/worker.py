@@ -47,16 +47,16 @@ def process_event(event_data: dict):
             order_id = event_data.get("order_id")
             amount = event_data.get("total_amount")
             title = "Order Created"
-            body = f"Your order #{order_id[:8]} has been placed. Total: {amount} BDT. Status: PENDING."
+            body = f"Your order #{order_id[:8]} has been placed. Total: {amount} INR. Status: PENDING."
         elif event_type == "OrderCompleted":
             order_id = event_data.get("order_id")
             amount = event_data.get("total_amount")
             title = "Order Confirmed!"
-            body = f"Payment received! Your order #{order_id[:8]} has been successfully confirmed. Total: {amount} BDT."
+            body = f"Payment received! Your order #{order_id[:8]} has been successfully confirmed. Total: {amount} INR."
         elif event_type == "WalletCredited":
             amount = event_data.get("amount")
             title = "Wallet Top-up Successful"
-            body = f"Success! {amount} BDT has been credited to your wallet balance."
+            body = f"Success! {amount} INR has been credited to your wallet balance."
         else:
             print(f"[Worker] Unknown event type: {event_type}")
             return

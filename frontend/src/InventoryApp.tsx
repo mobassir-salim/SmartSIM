@@ -547,7 +547,7 @@ const InventoryMainApp: React.FC = () => {
                       <p className="font-mono text-xs font-bold text-slate-400 mt-2">ICCID Prefix: {sim.iccid_prefix}</p>
                     </div>
                     <div className="border-t border-brand-primary pt-3 flex justify-between items-center">
-                      <span className="font-headline font-black text-xl">{sim.price} BDT</span>
+                      <span className="font-headline font-black text-xl">{sim.price} INR</span>
                       <div className="flex gap-2">
                         <Btn variant="outline" size="sm" onClick={() => { setSimForm({ id: sim.id, name: sim.name, type: sim.type, price: String(sim.price), description: sim.description || '', iccid_prefix: sim.iccid_prefix }); setSimModal('edit'); }}>Edit</Btn>
                         <Btn variant="warning" size="sm" onClick={() => toggleSIMStatus(sim)}>{sim.is_active ? 'Deactivate' : 'Activate'}</Btn>
@@ -581,7 +581,7 @@ const InventoryMainApp: React.FC = () => {
                       <p className="font-sans text-xs font-bold text-slate-500 mt-2">Data Allowance: {plan.data_gb} GB</p>
                     </div>
                     <div className="border-t border-brand-primary pt-3 flex justify-between items-center">
-                      <span className="font-headline font-black text-xl">{plan.price} BDT</span>
+                      <span className="font-headline font-black text-xl">{plan.price} INR</span>
                       <div className="flex gap-2">
                         <Btn variant="outline" size="sm" onClick={() => { setPlanForm({ id: plan.id, name: plan.name, price: String(plan.price), data_gb: String(plan.data_gb), validity_days: String(plan.validity_days), type: plan.type, description: plan.description || '' }); setPlanModal('edit'); }}>Edit</Btn>
                         <Btn variant="danger" size="sm" onClick={() => deletePlanProduct(plan.id)}><Trash2 className="w-3 h-3" /></Btn>
@@ -605,7 +605,7 @@ const InventoryMainApp: React.FC = () => {
               <option value="physical">Physical SIM Card</option>
               <option value="esim">eSIM Profile</option>
             </InputField>
-            <InputField label="Price (BDT)" required type="number" step="0.01" value={simForm.price} onChange={(e: any) => setSimForm({ ...simForm, price: e.target.value })} placeholder="e.g. 150.00" />
+            <InputField label="Price (INR)" required type="number" step="0.01" value={simForm.price} onChange={(e: any) => setSimForm({ ...simForm, price: e.target.value })} placeholder="e.g. 150.00" />
             <InputField label="ICCID Range Prefix" required value={simForm.iccid_prefix} onChange={(e: any) => setSimForm({ ...simForm, iccid_prefix: e.target.value })} placeholder="e.g. 8991" />
             <InputField label="Product Description" type="textarea" value={simForm.description} onChange={(e: any) => setSimForm({ ...simForm, description: e.target.value })} placeholder="Write product brief description..." />
             
@@ -619,7 +619,7 @@ const InventoryMainApp: React.FC = () => {
         <Modal title={planModal === 'edit' ? 'Edit Plan Product' : 'Add New Plan Product'} onClose={() => setPlanModal(null)}>
           <form onSubmit={savePlanProduct} className="space-y-4">
             <InputField label="Plan Name" required value={planForm.name} onChange={(e: any) => setPlanForm({ ...planForm, name: e.target.value })} placeholder="e.g. 100GB Monthly Superpack" />
-            <InputField label="Price (BDT)" required type="number" step="0.01" value={planForm.price} onChange={(e: any) => setPlanForm({ ...planForm, price: e.target.value })} placeholder="e.g. 499.00" />
+            <InputField label="Price (INR)" required type="number" step="0.01" value={planForm.price} onChange={(e: any) => setPlanForm({ ...planForm, price: e.target.value })} placeholder="e.g. 499.00" />
             <div className="grid grid-cols-2 gap-4">
               <InputField label="Data Allowance (GB)" required type="number" value={planForm.data_gb} onChange={(e: any) => setPlanForm({ ...planForm, data_gb: e.target.value })} placeholder="e.g. 100" />
               <InputField label="Validity (Days)" required type="number" value={planForm.validity_days} onChange={(e: any) => setPlanForm({ ...planForm, validity_days: e.target.value })} placeholder="e.g. 30" />

@@ -230,7 +230,7 @@ const SelectNumber: React.FC = () => {
                   Active Reservation
                 </span>
                 <span className="font-headline text-2xl font-black text-brand-primary tracking-tight">
-                  +880 {reservedMsisdn}
+                  +91 {reservedMsisdn}
                 </span>
               </div>
             </div>
@@ -394,7 +394,7 @@ const SelectNumber: React.FC = () => {
 
                         <div className="font-headline text-2xl font-black text-brand-primary tracking-tight mb-4 flex items-center gap-1.5">
                           <Phone className="w-5 h-5 text-slate-400" />
-                          <span>+880 {num.msisdn}</span>
+                          <span>+91 {num.msisdn}</span>
                         </div>
                       </div>
 

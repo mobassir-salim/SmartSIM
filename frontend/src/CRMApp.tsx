@@ -124,11 +124,14 @@ const CRMMainApp: React.FC = () => {
 
   const fetchAll = useCallback(async () => {
     try {
-      const usersRes = await api.get('/auth/users');
+      const [usersRes, ordersRes, ticketsRes] = await Promise.all([
+        api.get('/auth/users'),
+        api.get('/admin/orders'),
+        api.get('/tickets/admin/all'),
+      ]);
       setUsers(usersRes.data || []);
-
-      const ordersRes = await api.get('/admin/orders');
       setOrders(ordersRes.data || []);
+      setTickets(ticketsRes.data || []);
     } catch (e: any) {
       notify('Failed to load portal data', true);
     }
@@ -212,25 +215,33 @@ const CRMMainApp: React.FC = () => {
     }
   };
 
-  const createTicket = (e: React.FormEvent) => {
+  const createTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    const t = {
-      id: `TKT-${Date.now()}`,
-      customer_id: parseInt(ticketForm.customer_id),
-      type: ticketForm.type,
-      description: ticketForm.description,
-      status: 'Open',
-      created_at: new Date().toISOString()
-    };
-    setTickets(prev => [t, ...prev]);
-    setTicketForm({ customer_id: '', type: 'SIM Activation Issue', description: '' });
-    setTicketModal(null);
-    notify('Ticket created!');
+    try {
+      const res = await api.post('/tickets/admin/create', {
+        customer_id: parseInt(ticketForm.customer_id),
+        type: ticketForm.type,
+        description: ticketForm.description,
+      });
+      setTickets(prev => [res.data, ...prev]);
+      setTicketForm({ customer_id: '', type: 'SIM Activation Issue', description: '' });
+      setTicketModal(null);
+      notify('Ticket created!');
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'Failed to create ticket', true);
+    }
   };
 
-  const resolveTicket = (id: string) => {
-    setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'Resolved' } : t));
-    notify('Ticket marked as resolved!');
+  const resolveTicket = async (id: string | number) => {
+    try {
+      await api.post('/tickets/admin/resolve', {
+        ticket_id: typeof id === 'number' ? id : parseInt(id),
+      });
+      setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'Resolved' } : t));
+      notify('Ticket marked as resolved!');
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'Failed to resolve ticket', true);
+    }
   };
 
   const allowedRoles = ['SUPPORT_AGENT', 'OPERATIONS_ADMIN', 'SUPER_ADMIN', 'admin'];
@@ -425,7 +436,7 @@ const CRMMainApp: React.FC = () => {
                 <InputField label="Customer ID *" required type="number" value={walletAdjustForm.customer_id}
                   onChange={(e: any) => setWalletAdjustForm({ ...walletAdjustForm, customer_id: e.target.value })} placeholder="e.g. 1" />
                 <div className="grid grid-cols-2 gap-4">
-                  <InputField label="Adjustment Amount (BDT) *" required type="number" step="0.01" value={walletAdjustForm.amount}
+                  <InputField label="Adjustment Amount (INR) *" required type="number" step="0.01" value={walletAdjustForm.amount}
                     onChange={(e: any) => setWalletAdjustForm({ ...walletAdjustForm, amount: e.target.value })} placeholder="e.g. 500.00" />
                   <InputField label="Adjustment Type *" type="select" value={walletAdjustForm.type}
                     onChange={(e: any) => setWalletAdjustForm({ ...walletAdjustForm, type: e.target.value })}>
@@ -465,7 +476,7 @@ const CRMMainApp: React.FC = () => {
                         <td className="p-3 font-mono font-bold text-slate-400">{o.id}</td>
                         <td className="p-3 font-mono">#{o.user_id}</td>
                         <td className="p-3 font-mono font-bold text-brand-secondary">{o.msisdn || '—'}</td>
-                        <td className="p-3 font-bold">{o.total_amount} BDT</td>
+                        <td className="p-3 font-bold">{o.total_amount} INR</td>
                         <td className="p-3"><StatusBadge status={o.status} /></td>
                         <td className="p-3 font-sans text-slate-500">{new Date(o.created_at).toLocaleString()}</td>
                       </tr>
@@ -644,7 +655,7 @@ const CRMMainApp: React.FC = () => {
                         selectedCrmProfile.order_info.map((o: any) => (
                           <tr key={o.id} className="border-b border-brand-primary hover:bg-slate-50">
                             <td className="p-2 font-mono font-bold text-slate-400">{o.id}</td>
-                            <td className="p-2 font-bold">{o.total_amount} BDT</td>
+                            <td className="p-2 font-bold">{o.total_amount} INR</td>
                             <td className="p-2"><StatusBadge status={o.status} /></td>
                             <td className="p-2 font-sans text-slate-400">{new Date(o.created_at).toLocaleDateString()}</td>
                           </tr>

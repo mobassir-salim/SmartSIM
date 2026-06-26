@@ -14,6 +14,7 @@ from app.models.permission import Permission
 from app.models.customer_profile import CustomerProfile
 from app.models.customer_plan_history import CustomerPlanHistory
 from app.models.customer_activity import CustomerActivity
+from app.models.support_ticket import SupportTicket
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)

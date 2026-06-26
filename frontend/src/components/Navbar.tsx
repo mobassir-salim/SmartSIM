@@ -191,7 +191,7 @@ const Navbar: React.FC = () => {
                           {item.name}
                         </h4>
                         <p className="font-mono text-xs text-brand-primary mt-1">
-                          {item.price.toFixed(2)} BDT
+                          {item.price.toFixed(2)} INR
                         </p>
                       </div>
 
@@ -227,7 +227,7 @@ const Navbar: React.FC = () => {
               <div className="border-t-4 border-brand-primary pt-4 mb-4">
                 <div className="flex justify-between items-center mb-4 font-headline font-black text-lg">
                   <span className="uppercase text-slate-400">Total:</span>
-                  <span className="text-brand-primary text-2xl">{cartTotal.toFixed(2)} BDT</span>
+                  <span className="text-brand-primary text-2xl">{cartTotal.toFixed(2)} INR</span>
                 </div>
                 {checkoutMessage && (
                   <p className="text-xs font-headline font-black mb-4 text-center">{checkoutMessage}</p>

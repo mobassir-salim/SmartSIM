@@ -1,6 +1,6 @@
 import logging
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_admin, TokenData
@@ -99,3 +99,66 @@ def delete_plan(
     db.delete(db_plan)
     db.commit()
     return None
+
+
+import csv
+import io
+
+@router.post("/bulk-upload", response_model=List[PlanOut], summary="Bulk upload Plan products catalogue via CSV")
+async def bulk_upload_plans(
+    file: UploadFile = File(...),
+    admin: TokenData = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Bulk upload Plan products catalogue via CSV file.
+    Expected CSV columns: name, price, data_gb, validity_days, type, description
+    """
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only CSV files are accepted"
+        )
+    
+    content = await file.read()
+    decoded = content.decode('utf-8')
+    reader = csv.reader(io.StringIO(decoded))
+    
+    created_plans = []
+    
+    for row_num, row in enumerate(reader):
+        if row_num == 0 and any(col.lower().strip() in ('name', 'price', 'type') for col in row):
+            continue
+            
+        if len(row) < 6:
+            continue
+            
+        name = row[0].strip()
+        try:
+            price = float(row[1].strip())
+            data_gb = int(row[2].strip())
+            validity_days = int(row[3].strip())
+        except ValueError:
+            continue
+        plan_type = row[4].strip().lower()
+        description = row[5].strip() if row[5].strip() else None
+        
+        if not name or not plan_type:
+            continue
+            
+        db_plan = Plan(
+            name=name,
+            price=price,
+            data_gb=data_gb,
+            validity_days=validity_days,
+            type=plan_type,
+            description=description
+        )
+        db.add(db_plan)
+        db.commit()
+        db.refresh(db_plan)
+        
+        created_plans.append(db_plan)
+        
+    logger.info(f"Bulk uploaded {len(created_plans)} Plan products.")
+    return created_plans

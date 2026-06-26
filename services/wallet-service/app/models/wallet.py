@@ -23,7 +23,7 @@ class Wallet(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, unique=True, nullable=False, index=True)
     balance = Column(Numeric(precision=12, scale=2), default=0.00, nullable=False)
-    currency = Column(String(10), default="BDT", nullable=False)
+    currency = Column(String(10), default="INR", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

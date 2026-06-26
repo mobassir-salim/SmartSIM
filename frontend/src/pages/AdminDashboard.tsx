@@ -17,7 +17,7 @@ type TabId =
   | 'monitoring' | 'logs' | 'audit' | 'admin-users' | 'system-tracker';
 
 interface ServiceHealth { name: string; url: string; status: 'UP' | 'DOWN' | 'CHECKING'; }
-interface Ticket { id: string; customer_id: number; type: string; description: string; status: string; created_at: string; }
+interface Ticket { id: string | number; customer_id: number; type: string; description: string; status: string; created_at: string; }
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'overview',    label: 'Dashboard',          icon: LayoutDashboard },
@@ -228,16 +228,18 @@ const AdminDashboard: React.FC = () => {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [simsR, plansR, usersR, ordersR] = await Promise.allSettled([
+      const [simsR, plansR, usersR, ordersR, ticketsR] = await Promise.allSettled([
         api.get('/sims?include_inactive=true'),
         api.get('/plans'),
         api.get('/auth/users'),
         api.get('/admin/orders'),
+        api.get('/tickets/admin/all'),
       ]);
       if (simsR.status   === 'fulfilled') setSims(simsR.value.data || []);
       if (plansR.status  === 'fulfilled') setPlans(plansR.value.data || []);
       if (usersR.status  === 'fulfilled') setUsers(usersR.value.data || []);
       if (ordersR.status === 'fulfilled') setOrders(ordersR.value.data?.orders || ordersR.value.data || []);
+      if (ticketsR.status === 'fulfilled') setTickets(ticketsR.value.data || []);
     } catch (e: any) {
       notify(e.response?.data?.detail || 'Error loading data', true);
     }
@@ -465,22 +467,33 @@ const AdminDashboard: React.FC = () => {
     catch (e: any) { notify(e.response?.data?.detail || 'Failed', true); }
   };
 
-  const createTicket = (e: React.FormEvent) => {
+  const createTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    const t: Ticket = {
-      id: `TKT-${Date.now()}`, customer_id: parseInt(ticketForm.customer_id),
-      type: ticketForm.type, description: ticketForm.description,
-      status: 'Open', created_at: new Date().toISOString(),
-    };
-    setTickets(prev => [t, ...prev]);
-    setTicketForm({ customer_id: '', type: 'SIM Activation Issue', description: '' });
-    setTicketModal(null);
-    notify('Ticket created!');
+    try {
+      const res = await api.post('/tickets/admin/create', {
+        customer_id: parseInt(ticketForm.customer_id),
+        type: ticketForm.type,
+        description: ticketForm.description,
+      });
+      setTickets(prev => [res.data, ...prev]);
+      setTicketForm({ customer_id: '', type: 'SIM Activation Issue', description: '' });
+      setTicketModal(null);
+      notify('Ticket created!');
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'Failed to create ticket', true);
+    }
   };
 
-  const resolveTicket = (id: string) => {
-    setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'Resolved' } : t));
-    notify('Ticket resolved!');
+  const resolveTicket = async (id: string | number) => {
+    try {
+      await api.post('/tickets/admin/resolve', {
+        ticket_id: typeof id === 'number' ? id : parseInt(id),
+      });
+      setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'Resolved' } : t));
+      notify('Ticket resolved!');
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'Failed to resolve ticket', true);
+    }
   };
 
   const totalRevenue = orders.filter((o:any) => o.status === 'CONFIRMED').reduce((s: number, o: any) => s + (Number(o.total_amount) || 0), 0);
@@ -1402,7 +1415,7 @@ const AdminDashboard: React.FC = () => {
               <option value="prepaid">Prepaid</option>
               <option value="postpaid">Postpaid</option>
             </InputField>
-            <InputField label="Price (BDT)" type="number" step="0.01" required value={simForm.price}
+            <InputField label="Price (INR)" type="number" step="0.01" required value={simForm.price}
               onChange={(e:any) => setSimForm({...simForm, price: e.target.value})} placeholder="150.00" />
             <InputField label="ICCID Prefix" type="text" required value={simForm.iccid_prefix}
               onChange={(e:any) => setSimForm({...simForm, iccid_prefix: e.target.value})} placeholder="e.g. 89880" />
@@ -1422,7 +1435,7 @@ const AdminDashboard: React.FC = () => {
             <InputField label="Plan Name" type="text" required value={planForm.name}
               onChange={(e:any) => setPlanForm({...planForm, name: e.target.value})} placeholder="e.g. Monthly Unlimited" />
             <div className="grid grid-cols-2 gap-3">
-              <InputField label="Price (BDT)" type="number" step="0.01" required value={planForm.price}
+              <InputField label="Price (INR)" type="number" step="0.01" required value={planForm.price}
                 onChange={(e:any) => setPlanForm({...planForm, price: e.target.value})} placeholder="299.00" />
               <InputField label="Plan Type" type="select" value={planForm.type}
                 onChange={(e:any) => setPlanForm({...planForm, type: e.target.value})}>

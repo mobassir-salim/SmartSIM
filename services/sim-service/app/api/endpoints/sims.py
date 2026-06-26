@@ -1,7 +1,7 @@
 import random
 import logging
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user_role, get_current_admin, TokenData
@@ -280,3 +280,66 @@ def purchase_sim(sim_id: int, db: Session = Depends(get_db)):
     logger.info("SIM purchased", extra={"event": "sim_purchase", "sim_id": sim_id})
     logger.info("SIM inventory updated", extra={"event": "inventory_updated", "sim_id": sim_id})
     return enrich_sim_with_stock(sim, db)
+
+
+import csv
+import io
+
+@router.post("/bulk-upload", response_model=List[SimOut], summary="Bulk upload SIM products catalogue via CSV")
+async def bulk_upload_sims(
+    file: UploadFile = File(...),
+    admin: TokenData = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Bulk upload SIM products catalogue via CSV file.
+    Expected CSV columns: name, type, price, description, iccid_prefix
+    """
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only CSV files are accepted"
+        )
+    
+    content = await file.read()
+    decoded = content.decode('utf-8')
+    reader = csv.reader(io.StringIO(decoded))
+    
+    created_sims = []
+    
+    for row_num, row in enumerate(reader):
+        if row_num == 0 and any(col.lower().strip() in ('name', 'type', 'price') for col in row):
+            continue
+            
+        if len(row) < 5:
+            continue
+            
+        name = row[0].strip()
+        sim_type = row[1].strip().lower()
+        try:
+            price = float(row[2].strip())
+        except ValueError:
+            continue
+        description = row[3].strip() if row[3].strip() else None
+        iccid_prefix = row[4].strip()
+        
+        if not name or not sim_type or not iccid_prefix:
+            continue
+            
+        db_sim = Sim(
+            name=name,
+            type=sim_type,
+            price=price,
+            description=description,
+            iccid_prefix=iccid_prefix,
+            is_active=True
+        )
+        db.add(db_sim)
+        db.commit()
+        db.refresh(db_sim)
+        
+        generate_dummy_inventory(db, db_sim.id, iccid_prefix, count=5)
+        created_sims.append(enrich_sim_with_stock(db_sim, db))
+        
+    logger.info(f"Bulk uploaded {len(created_sims)} SIM products.")
+    return created_sims

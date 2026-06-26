@@ -181,7 +181,7 @@ const PlanCatalog: React.FC = () => {
                       Price
                     </span>
                     <span className="font-headline text-3xl font-black text-brand-primary">
-                      {plan.price.toFixed(2)} BDT
+                      {plan.price.toFixed(2)} INR
                     </span>
                   </div>
                   <button
