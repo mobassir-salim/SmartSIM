@@ -116,6 +116,15 @@ const CRMMainApp: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [crmForm, setCrmForm] = useState({ customer_id: 0, name: '', email: '', mobile: '', address: '', notes: '', status: 'ACTIVE' });
   const [ticketForm, setTicketForm] = useState({ customer_id: '', type: 'SIM Activation Issue', description: '' });
+  const [editTicketStatus, setEditTicketStatus] = useState<string>('');
+  const [editTicketAssignee, setEditTicketAssignee] = useState<number | string>('');
+
+  useEffect(() => {
+    if (selectedTicket) {
+      setEditTicketStatus(selectedTicket.status);
+      setEditTicketAssignee(selectedTicket.assigned_to || '');
+    }
+  }, [selectedTicket]);
 
   const notify = (msg: string, isErr = false) => {
     if (isErr) { setErrorMsg(msg); setTimeout(() => setErrorMsg(''), 4000); }
@@ -241,6 +250,23 @@ const CRMMainApp: React.FC = () => {
       notify('Ticket marked as resolved!');
     } catch (err: any) {
       notify(err.response?.data?.detail || 'Failed to resolve ticket', true);
+    }
+  };
+
+  const updateTicketDetails = async () => {
+    if (!selectedTicket) return;
+    try {
+      const res = await api.post('/tickets/admin/update', {
+        ticket_id: Number(selectedTicket.id),
+        status: editTicketStatus,
+        assigned_to: editTicketAssignee === '' ? 0 : Number(editTicketAssignee)
+      });
+      setTickets(prev => prev.map(t => t.id === selectedTicket.id ? res.data : t));
+      setTicketModal(null);
+      setSelectedTicket(null);
+      notify('Ticket updated successfully!');
+    } catch (err: any) {
+      notify(err.response?.data?.detail || 'Failed to update ticket', true);
     }
   };
 
@@ -395,8 +421,10 @@ const CRMMainApp: React.FC = () => {
               <SectionHeader title={`Support Tickets (${tickets.length})`}
                 action={<Btn variant="primary" onClick={() => setTicketModal('add')}><Plus className="w-3.5 h-3.5" />New Ticket</Btn>} />
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <MetricCard label="Open" value={openTickets} accent />
+                <MetricCard label="In Progress" value={tickets.filter(t => t.status === 'In Progress').length} />
+                <MetricCard label="Pending" value={tickets.filter(t => t.status === 'Pending').length} />
                 <MetricCard label="Resolved" value={tickets.filter(t => t.status === 'Resolved').length} />
               </div>
 
@@ -411,16 +439,24 @@ const CRMMainApp: React.FC = () => {
                     <div key={t.id} className="p-4 flex justify-between items-start bg-white">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-xs font-bold text-slate-400">{t.id}</span>
-                          <span className="text-[10px] font-bold font-sans text-slate-500">Customer #{t.customer_id}</span>
+                          <span className="font-mono text-xs font-bold text-slate-400">TKT-{t.id}</span>
+                          <span className="text-[10px] font-bold font-sans text-slate-500">
+                            Customer #{t.customer_id}
+                            {t.assigned_to && ` · Agent #${t.assigned_to}`}
+                          </span>
                           <StatusBadge status={t.status} />
                         </div>
                         <p className="font-headline font-black text-sm uppercase mb-1">{t.type}</p>
                         <p className="text-xs text-slate-600 font-sans max-w-md">{t.description}</p>
                       </div>
-                      {t.status === 'Open' && (
-                        <Btn variant="success" size="sm" onClick={() => resolveTicket(t.id)}>Resolve</Btn>
-                      )}
+                      <div className="flex gap-2">
+                        {t.status !== 'Resolved' && (
+                          <Btn variant="success" size="sm" onClick={() => resolveTicket(t.id)}>Resolve</Btn>
+                        )}
+                        <Btn variant="outline" size="sm" onClick={() => { setSelectedTicket(t); setTicketModal('view'); }}>
+                          View
+                        </Btn>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -707,6 +743,66 @@ const CRMMainApp: React.FC = () => {
             
             <Btn variant="primary" size="lg" className="w-full justify-center">Create Ticket</Btn>
           </form>
+        </Modal>
+      )}
+
+      {/* Ticket: View */}
+      {ticketModal === 'view' && selectedTicket && (
+        <Modal title={`Ticket: TKT-${selectedTicket.id}`} onClose={() => { setTicketModal(null); setSelectedTicket(null); }}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[9px] font-headline font-black uppercase tracking-widest text-slate-400 mb-0.5">Customer ID</p>
+                <p className="font-headline font-semibold text-sm">#{selectedTicket.customer_id}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-headline font-black uppercase tracking-widest text-slate-400 mb-0.5">Type</p>
+                <p className="font-headline font-semibold text-sm">{selectedTicket.type}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-headline font-black uppercase tracking-widest text-slate-400 mb-0.5">Created At</p>
+                <p className="font-headline font-semibold text-sm">{new Date(selectedTicket.created_at).toLocaleString()}</p>
+              </div>
+            </div>
+            
+            <div>
+              <p className="text-[9px] font-headline font-black uppercase tracking-widest text-slate-400 mb-1">Description</p>
+              <p className="font-sans text-sm text-slate-600 bg-brand-surface-low p-3 border-2 border-brand-primary">{selectedTicket.description}</p>
+            </div>
+
+            <InputField label="Ticket Status" type="select" value={editTicketStatus}
+              onChange={(e: any) => setEditTicketStatus(e.target.value)}>
+              <option value="Open">Open</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Pending">Pending</option>
+              <option value="Resolved">Resolved</option>
+            </InputField>
+
+            <InputField label="Assigned Agent" type="select" value={editTicketAssignee}
+              onChange={(e: any) => setEditTicketAssignee(e.target.value)}>
+              <option value="">Unassigned</option>
+              {users
+                .filter(u => ['admin', 'super_admin', 'support_agent', 'operations_admin', 'system_admin', 'inventory_admin'].includes(u.role?.toLowerCase()))
+                .map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.role?.replace('_', ' ').toUpperCase()})
+                  </option>
+                ))
+              }
+            </InputField>
+
+            <div className="flex gap-2 pt-2">
+              <Btn variant="primary" size="lg" className="flex-1 justify-center" onClick={updateTicketDetails}>
+                Save Changes
+              </Btn>
+              {editTicketStatus !== 'Resolved' && (
+                <Btn variant="success" size="lg" className="justify-center"
+                  onClick={() => { resolveTicket(selectedTicket.id); setTicketModal(null); setSelectedTicket(null); }}>
+                  Resolve
+                </Btn>
+              )}
+            </div>
+          </div>
         </Modal>
       )}
 

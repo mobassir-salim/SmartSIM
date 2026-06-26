@@ -135,3 +135,46 @@ def admin_create_ticket(
     )
     return db_ticket
 
+from typing import Optional
+
+class TicketUpdatePayload(BaseModel):
+    ticket_id: int
+    status: Optional[str] = None
+    assigned_to: Optional[int] = None
+
+@router.post("/admin/update", response_model=SupportTicketOut)
+def update_ticket(
+    payload: TicketUpdatePayload,
+    admin: TokenData = Depends(get_current_crm_admin),
+    db: Session = Depends(get_db)
+):
+    """Admin/Support endpoint to update ticket status and/or assignee."""
+    ticket = db.query(SupportTicket).filter(SupportTicket.id == payload.ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+        
+    if payload.status is not None:
+        allowed_statuses = ["Open", "In Progress", "Pending", "Resolved"]
+        if payload.status not in allowed_statuses:
+            raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of {allowed_statuses}")
+        ticket.status = payload.status
+        
+    if payload.assigned_to is not None:
+        if payload.assigned_to <= 0: # 0 or negative to unassign
+            ticket.assigned_to = None
+        else:
+            agent = db.query(User).filter(User.id == payload.assigned_to).first()
+            if not agent:
+                raise HTTPException(status_code=400, detail="Assigned agent does not exist")
+            ticket.assigned_to = payload.assigned_to
+            
+    db.commit()
+    db.refresh(ticket)
+    
+    logger.info(
+        f"Ticket {ticket.id} updated by admin {admin.sub}: status={payload.status}, assigned_to={payload.assigned_to}",
+        extra={"event": "ticket_updated", "ticket_id": ticket.id, "status": payload.status, "assigned_to": payload.assigned_to}
+    )
+    return ticket
+
+
