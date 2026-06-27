@@ -13,28 +13,15 @@ scrape_configs:
           - 'wallet-service:8004'
           - 'order-service:8005'
           - 'notification-service:8006'
+          - 'notification-router:8013'
+          - 'whatsapp-service:8010'
+          - 'sms-service:8011'
+          - 'email-service:8012'
 
 # GRAFANA CLOUD REMOTE WRITE CONFIGURATION
 # To send your metrics to Grafana Cloud:
-# 1. Log in to your Grafana Cloud account.
-# 2. In your stack details page, locate the "Prometheus" card and click "Send Metrics".
-# 3. Copy the "Remote Write Endpoint", "Username", and generate a password (API Token).
-# 4. Uncomment the lines below and replace the placeholder values.
-
 # remote_write:
 #   - url: 'https://prometheus-prod-43-prod-ap-south-1.grafana.net/api/prom/push'
 #     basic_auth:
 #       username: '3321776'
 #       password: '<YOUR_GRAFANA_CLOUD_API_TOKEN>'
-
-global:
-  scrape_interval: 60s
-remote_write:
-  - url: https://prometheus-prod-43-prod-ap-south-1.grafana.net/api/prom/push
-    basic_auth:
-      username: 3321776
-      password: <YOUR_GRAFANA_CLOUD_API_TOKEN>
-scrape_configs:
-  - job_name: node
-    static_configs:
-      - targets: ["localhost:9090"]

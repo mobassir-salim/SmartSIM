@@ -65,6 +65,12 @@ def create_and_print_otp(db: Session, email: str, purpose: str) -> str:
         "email": email,
         "purpose": purpose
     })
+
+    try:
+        from app.core.rabbitmq import publish_event
+        publish_event("OTPCreated", {"email": email, "otp": otp_code, "purpose": purpose})
+    except Exception as e:
+        logger.warning(f"Failed to publish OTPCreated event to RabbitMQ: {e}")
     
     return otp_code
 

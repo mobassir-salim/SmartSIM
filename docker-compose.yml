@@ -206,6 +206,99 @@ services:
       - smartsim_network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8006
 
+  notification-router:
+    build: ./services/notification-router
+    container_name: smartsim_notification_router
+    ports:
+      - "8013:8013"
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - WHATSAPP_SERVICE_URL=http://whatsapp-service:8010/api/v1
+      - SMS_SERVICE_URL=http://sms-service:8011/api/v1
+      - EMAIL_SERVICE_URL=http://email-service:8012/api/v1
+      - APP_ENV=development
+      - NOTIFICATION_MODE=TEST
+      - WHATSAPP_TEST_NUMBER=919999999999
+      - SMS_TEST_NUMBER=919999999999
+      - EMAIL_TEST_ADDRESS=test@smartsim.local
+    volumes:
+      - ./services/notification-router:/app
+    depends_on:
+      - postgres
+      - whatsapp-service
+      - sms-service
+      - email-service
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8013
+
+  whatsapp-service:
+    build: ./services/whatsapp-service
+    container_name: smartsim_whatsapp_service
+    ports:
+      - "8010:8010"
+    environment:
+      - OPENWA_API_URL=http://openwa-mock:8014
+    volumes:
+      - ./services/whatsapp-service:/app
+    depends_on:
+      - openwa-mock
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8010
+
+  openwa-mock:
+    build: ./services/openwa-mock
+    container_name: smartsim_openwa_mock
+    ports:
+      - "8014:8014"
+    volumes:
+      - ./services/openwa-mock:/app
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8014
+
+  sms-service:
+    build: ./services/sms-service
+    container_name: smartsim_sms_service
+    ports:
+      - "8011:8011"
+    volumes:
+      - ./services/sms-service:/app
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8011
+
+  email-service:
+    build: ./services/email-service
+    container_name: smartsim_email_service
+    ports:
+      - "8012:8012"
+    environment:
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - EMAIL_FROM=noreply@smartsim.local
+    volumes:
+      - ./services/email-service:/app
+    depends_on:
+      - mailhog
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8012
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: smartsim_mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - smartsim_network
+
   frontend:
     build: ./frontend
     container_name: smartsim_frontend
@@ -257,7 +350,7 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     ports:
       - "9200:9200"
     volumes:

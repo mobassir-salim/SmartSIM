@@ -4,18 +4,6 @@ from sqlalchemy import Column, String, DateTime, Integer, JSON, TEXT
 from app.core.database import Base
 
 
-class Notification(Base):
-    __tablename__ = "notifications"
-
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    recipient = Column(String(255), nullable=False, index=True)
-    type = Column(String(50), nullable=False)  # EMAIL, SMS
-    title = Column(String(255), nullable=True)
-    body = Column(String, nullable=False)
-    status = Column(String(50), default="SENT", nullable=False)  # SENT, FAILED
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-
 class NotificationTemplate(Base):
     __tablename__ = "notification_templates"
 
@@ -83,3 +71,10 @@ class NotificationDLQ(Base):
     status = Column(String(50), nullable=False, default="FAILED")  # FAILED, RETRIED, CANCELLED
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+
+# Router Config Table
+class RouterConfiguration(Base):
+    __tablename__ = "notification_router_config"
+
+    key = Column(String(255), primary_key=True)
+    value = Column(String(255), nullable=False)

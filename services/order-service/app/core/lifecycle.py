@@ -300,10 +300,24 @@ def execute_order_lifecycle(
                 try:
                     from app.core.rabbitmq import publish_event
                     publish_event("OrderCompleted", {"user_id": user_id, "order_id": order.id, "total_amount": float(order.total_amount)})
+                    
+                    # Also publish SimActivated event
+                    res = db.execute(
+                        text("SELECT msisdn FROM sim_assignment WHERE order_id = :order_id"),
+                        {"order_id": order.id}
+                    ).first()
+                    msisdn = res[0] if res else None
+                    if msisdn:
+                        publish_event("SimActivated", {"user_id": user_id, "msisdn": msisdn})
+                        
+                    # Also publish RechargeSuccessful event
+                    if plan_items:
+                        for plan_it in plan_items:
+                            publish_event("RechargeSuccessful", {"user_id": user_id, "plan": plan_it.item_name})
                 except Exception as mq_err:
                     logger.error(f"MQ publishing warning: {mq_err}")
                 journey_step.status = "SUCCESS"
-                journey_step.response_payload = json.dumps({"event": "OrderCompleted published"})
+                journey_step.response_payload = json.dumps({"event": "OrderCompleted, SimActivated & RechargeSuccessful published"})
 
             db.commit()
 

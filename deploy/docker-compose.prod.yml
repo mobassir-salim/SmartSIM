@@ -179,6 +179,105 @@ services:
       - smartsim_network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8006
 
+  notification-router:
+    build:
+      context: ../services/notification-router
+      dockerfile: Dockerfile
+    container_name: smartsim_notification_router_prod
+    restart: unless-stopped
+    ports:
+      - "8013:8013"
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=smartsim
+      - POSTGRES_PORT=5432
+      - WHATSAPP_SERVICE_URL=http://whatsapp-service:8010/api/v1
+      - SMS_SERVICE_URL=http://sms-service:8011/api/v1
+      - EMAIL_SERVICE_URL=http://email-service:8012/api/v1
+      - APP_ENV=production
+      - NOTIFICATION_MODE=LIVE
+      - WHATSAPP_TEST_NUMBER=919999999999
+      - SMS_TEST_NUMBER=919999999999
+      - EMAIL_TEST_ADDRESS=test@smartsim.local
+    depends_on:
+      - postgres
+      - whatsapp-service
+      - sms-service
+      - email-service
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8013
+
+  whatsapp-service:
+    build:
+      context: ../services/whatsapp-service
+      dockerfile: Dockerfile
+    container_name: smartsim_whatsapp_service_prod
+    restart: unless-stopped
+    ports:
+      - "8010:8010"
+    environment:
+      - OPENWA_API_URL=http://openwa-mock:8014
+    depends_on:
+      - openwa-mock
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8010
+
+  openwa-mock:
+    build:
+      context: ../services/openwa-mock
+      dockerfile: Dockerfile
+    container_name: smartsim_openwa_mock_prod
+    restart: unless-stopped
+    ports:
+      - "8014:8014"
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8014
+
+  sms-service:
+    build:
+      context: ../services/sms-service
+      dockerfile: Dockerfile
+    container_name: smartsim_sms_service_prod
+    restart: unless-stopped
+    ports:
+      - "8011:8011"
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8011
+
+  email-service:
+    build:
+      context: ../services/email-service
+      dockerfile: Dockerfile
+    container_name: smartsim_email_service_prod
+    restart: unless-stopped
+    ports:
+      - "8012:8012"
+    environment:
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - EMAIL_FROM=noreply@smartsim.local
+    depends_on:
+      - mailhog
+    networks:
+      - smartsim_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8012
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: smartsim_mailhog_prod
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - smartsim_network
+
   frontend:
     build:
       context: ../frontend
@@ -226,6 +325,8 @@ services:
     image: logstash:8.11.1
     container_name: smartsim_logstash_prod
     restart: unless-stopped
+    environment:
+      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
     volumes:
       - ../logging/logstash/pipeline:/usr/share/logstash/pipeline:ro
     depends_on:

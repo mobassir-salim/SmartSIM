@@ -123,6 +123,12 @@ def reserve_number(
         f"Number {payload.msisdn} reserved by customer {customer_id}",
         extra={"event": "number_reserved", "msisdn": payload.msisdn, "customer_id": customer_id}
     )
+    
+    try:
+        from app.core.rabbitmq import publish_event
+        publish_event("NumberReserved", {"msisdn": payload.msisdn, "customer_id": customer_id})
+    except Exception as e:
+        logger.warning(f"Failed to publish NumberReserved event: {e}")
     return num_record
 
 @router.post("/release", response_model=MobileNumberOut)

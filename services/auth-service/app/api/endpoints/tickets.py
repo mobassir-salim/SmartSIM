@@ -34,6 +34,13 @@ def raise_ticket(
         f"Support ticket raised: ID {db_ticket.id} by customer {current_user.id}",
         extra={"event": "ticket_created", "ticket_id": db_ticket.id, "customer_id": current_user.id}
     )
+
+    try:
+        from app.core.rabbitmq import publish_event
+        publish_event("TicketCreated", {"ticket_id": db_ticket.id, "customer_id": current_user.id})
+    except Exception as e:
+        logger.warning(f"Failed to publish TicketCreated event: {e}")
+
     return db_ticket
 
 @router.get("", response_model=List[SupportTicketOut])
@@ -106,6 +113,13 @@ def resolve_ticket(
         f"Ticket {ticket.id} resolved by admin {admin.sub}",
         extra={"event": "ticket_resolved", "ticket_id": ticket.id}
     )
+
+    try:
+        from app.core.rabbitmq import publish_event
+        publish_event("TicketResolved", {"ticket_id": ticket.id, "customer_id": ticket.customer_id})
+    except Exception as e:
+        logger.warning(f"Failed to publish TicketResolved event: {e}")
+
     return ticket
 
 @router.post("/admin/create", response_model=SupportTicketOut, status_code=status.HTTP_201_CREATED)
@@ -133,6 +147,13 @@ def admin_create_ticket(
         f"Support ticket raised by admin {admin.sub} for customer {ticket_in.customer_id}",
         extra={"event": "ticket_created_by_admin", "ticket_id": db_ticket.id, "customer_id": ticket_in.customer_id}
     )
+
+    try:
+        from app.core.rabbitmq import publish_event
+        publish_event("TicketCreated", {"ticket_id": db_ticket.id, "customer_id": ticket_in.customer_id})
+    except Exception as e:
+        logger.warning(f"Failed to publish TicketCreated event: {e}")
+
     return db_ticket
 
 from typing import Optional

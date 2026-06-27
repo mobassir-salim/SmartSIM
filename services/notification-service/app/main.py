@@ -9,10 +9,51 @@ from app.worker import run_worker_in_background
 from app.core.logging import setup_logging
 
 # Import models so SQLAlchemy creates the tables on startup
-from app.models.notification import Notification
+from app.models.notification import (
+    Notification,
+    NotificationTemplate,
+    NotificationQueue,
+    NotificationHistory,
+    NotificationRouterLog,
+    NotificationDLQ
+)
 
 # Auto-create tables
 Base.metadata.create_all(bind=engine)
+
+def seed_templates():
+    from app.core.database import SessionLocal
+    from app.models.notification import NotificationTemplate
+    db = SessionLocal()
+    try:
+        defaults = [
+            {"name": "customer_registered", "channel": "EMAIL", "subject": "Welcome to SmartSIM!", "body": "Hello {{name}},\n\nWelcome to SmartSIM. Your account {{email}} has been successfully registered. We are thrilled to have you with us!"},
+            {"name": "otp", "channel": "ALL", "subject": "Your Verification Code", "body": "Your verification code is {{otp}}. It is valid for 10 minutes."},
+            {"name": "number_reserved", "channel": "ALL", "subject": "Mobile Number Reserved", "body": "Your selected mobile number {{msisdn}} has been reserved. Reservation expires in 30 minutes. Please complete your order soon."},
+            {"name": "sim_activated", "channel": "ALL", "subject": "SIM Activated Successfully", "body": "Your SIM is now active. MSISDN: {{msisdn}}."},
+            {"name": "order_completed", "channel": "ALL", "subject": "Order Completed", "body": "Your order {{order_id}} has been completed successfully. Thank you for choosing SmartSIM!"},
+            {"name": "wallet_credit", "channel": "ALL", "subject": "Wallet Credited", "body": "₹{{amount}} has been credited successfully to your SmartSIM wallet."},
+            {"name": "recharge_successful", "channel": "ALL", "subject": "Recharge Successful", "body": "Recharge completed successfully for plan: {{plan}}."},
+            {"name": "support_ticket_closed", "channel": "ALL", "subject": "Support Ticket Resolved", "body": "Your support ticket {{ticket_id}} has been resolved. If you have further issues, please raise a new ticket."}
+        ]
+        for item in defaults:
+            existing = db.query(NotificationTemplate).filter(NotificationTemplate.name == item["name"]).first()
+            if not existing:
+                template = NotificationTemplate(
+                    name=item["name"],
+                    channel=item["channel"],
+                    subject=item["subject"],
+                    body=item["body"]
+                )
+                db.add(template)
+        db.commit()
+    except Exception as e:
+        print(f"Error seeding templates: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+seed_templates()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -91,6 +132,9 @@ app.add_middleware(
 
 # Routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+from app.api.endpoints.notifications import v1_router
+app.include_router(v1_router, prefix="/api/v1/notifications", tags=["Notifications V1"])
 
 
 @app.get("/")
